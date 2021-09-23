@@ -1,4 +1,4 @@
-library("GOLDFINGER")
+library("goldfinger")
 
 (load("D:/Goldfinger/CHRdata/CHR_DB_20210504.Rdata"))
 

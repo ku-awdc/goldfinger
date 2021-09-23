@@ -1,4 +1,4 @@
 library(testthat)
-library(GOLDFINGER)
+library(goldfinger)
 
-test_check("GOLDFINGER")
+test_check("goldfinger")
