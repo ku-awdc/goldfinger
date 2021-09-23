@@ -11,10 +11,15 @@ License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
-Depends:
-    tidyverse,
+RoxygenNote: 7.1.2
+Imports:
+    rstudioapi,
+    keyring,
+    getPass,
+    sodium,
     cyphr
+Depends:
+    tidyverse
 Suggests: 
     knitr,
     rmarkdown,
