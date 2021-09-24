@@ -1,5 +1,5 @@
 #' @name gf_utilities
-#' @title Utilities for goldfinge encryption
+#' @title Utilities for goldfinger encryption
 #'
 #' @param silent
 #'

@@ -4,7 +4,7 @@
 \alias{gf_utilities}
 \alias{gf_check}
 \alias{gf_users}
-\title{Utilities for goldfinge encryption}
+\title{Utilities for goldfinger encryption}
 \usage{
 gf_check(silent = FALSE)
 
@@ -14,5 +14,5 @@ gf_users(fallback = TRUE, refresh = FALSE)
 \item{silent}{}
 }
 \description{
-Utilities for goldfinge encryption
+Utilities for goldfinger encryption
 }

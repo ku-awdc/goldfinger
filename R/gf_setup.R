@@ -91,7 +91,7 @@ gf_setup <- function(){
   gf_check()
 
   ## Create a file to be sent for public registration:
-  kp <- keypair_sodium(goldfinger:::users_sigkey, private_key, authenticated=FALSE)
+  kp <- keypair_sodium(users_sigkey, private_key, authenticated=FALSE)
   public_encry <- encrypt_object(public_save, kp)
 
   saveRDS(public_encry, file=str_c("goldfinger_", user, ".gfp"), compress=compress)

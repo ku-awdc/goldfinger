@@ -4,12 +4,18 @@
 \name{goldfinger-package}
 \alias{goldfinger}
 \alias{goldfinger-package}
-\title{goldfinger: What the Package Does (One Line, Title Case)}
+\title{goldfinger: Support Package for GOLDFINGER}
 \description{
-What the package does (one paragraph).
+Support package for GOLDFINGER
 }
 \author{
 \strong{Maintainer}: Matt Denwood \email{md@sund.ku.dk}
+
+Other contributors:
+\itemize{
+  \item Mossa Merhi Reimert \email{mossa@sund.ku.dk} [contributor]
+  \item Søren Saxmose Nielsen \email{saxmose@sund.ku.dk} [contributor]
+}
 
 }
 \keyword{internal}

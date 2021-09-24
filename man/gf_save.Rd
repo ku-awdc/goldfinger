@@ -18,8 +18,7 @@ gf_save(
 )
 
 gf_load(
-  file = stop("file must be specified (.rdg file extension is recommended)"),
-  simplify = TRUE
+  file = stop("file must be specified (.rdg file extension is recommended)")
 )
 }
 \description{
