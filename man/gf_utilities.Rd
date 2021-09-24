@@ -3,12 +3,12 @@
 \name{gf_utilities}
 \alias{gf_utilities}
 \alias{gf_check}
-\alias{gf_user}
+\alias{gf_users}
 \title{Utilities for goldfinge encryption}
 \usage{
 gf_check(silent = FALSE)
 
-gf_user()
+gf_users(fallback = TRUE, refresh = FALSE)
 }
 \arguments{
 \item{silent}{}

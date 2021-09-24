@@ -2,19 +2,26 @@
 % Please edit documentation in R/gf_save.R
 \name{gf_save}
 \alias{gf_save}
-\title{Title}
+\alias{gf_load}
+\title{Save and load encrypted files}
 \usage{
 gf_save(
   ...,
   list = character(),
-  file = "encrypted_data.rdg",
-  user = gf_user(),
-  compress = "xz"
+  file = stop("file must be specified (.rdg file extension is recommended)"),
+  user = character(0),
+  local_user = TRUE,
+  ascii = FALSE,
+  version = NULL,
+  compress = "xz",
+  overwrite = FALSE
+)
+
+gf_load(
+  file = stop("file must be specified (.rdg file extension is recommended)"),
+  simplify = TRUE
 )
 }
-\arguments{
-\item{user}{}
-}
 \description{
-Title
+Save and load encrypted files
 }

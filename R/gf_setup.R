@@ -3,12 +3,15 @@
 #' @importFrom stringr str_remove str_c
 #' @importFrom getPass getPass
 #' @importFrom keyring key_set_with_value key_get key_list key_delete
-#' @importFrom sodium sha256 keygen pubkey
+#' @importFrom sodium sha256 keygen pubkey data_encrypt data_decrypt
 #' @importFrom cyphr key_sodium keypair_sodium encrypt_object decrypt_object
 #' @importFrom rstudioapi selectDirectory isAvailable
 #'
 #' @export
 gf_setup <- function(){
+
+  ## May want to modify this:
+  compress <- TRUE
 
   ## First ask for name, email, username, password
 
@@ -20,6 +23,7 @@ gf_setup <- function(){
   tuser <- str_remove(email, "@.*")
   user <- readline(prompt=str_c("Username (leave blank to accept ", tuser, "):  "))
   if(user=="") user <- tuser
+  if(tolower(user)=="local_user") stop("The username 'local_user' cannot be used", call. = FALSE)
 
   ## Password:
   repeat{
@@ -52,8 +56,10 @@ gf_setup <- function(){
 
   # Store the password:
   key_set_with_value("goldfinger", user, pass)
+  # Generate and store a salt:
+  salt <- str_c(sample(c(letters,LETTERS,0:9),6),collapse="")
   # Convert to symmetric encryption key:
-  sym_key <- key_sodium(sha256(charToRaw(pass)))
+  sym_key <- key_sodium(sha256(charToRaw(str_c(salt,pass))))
   # Set up asymmetric key pair:
   private_key <- keygen()
   public_key <- pubkey(private_key)
@@ -61,28 +67,36 @@ gf_setup <- function(){
   private_encr <- encrypt_object(private_key, sym_key)
   stopifnot(identical(private_key, decrypt_object(private_encr, sym_key)))
 
+  ## TODO: retrieve version automatically
   version <- "0.1.0-1"
   date_time <- Sys.time()
 
   ## Create the storage file:
-  save(name, email, user, version, date_time, private_encr, public_key, file=file.path(path, filename))
+  public_save <- list(name=name, email=email, user=user, version=version, date_time=date_time, public_key=public_key)
+  saveRDS(c(public_save, list(salt=salt, private_encr=private_encr)), file=file.path(path, filename), compress=compress)
+
   cat("#### Setup complete ####\n")
 
   ## Add the path to the storage file to the user's Rprofile:
 
   rprofline <- str_c("options(goldfinger_path='", file.path(path, filename), "')\n")
   eval(parse(text=rprofline))
-  cat("In order for goldfinger to work between R sessions, you need to add the following line to your R profile:\n", rprofline, "\n")
+  cat("In order for goldfinger to work between R sessions, you need\nto add the following line to your R profile:\n", rprofline, "\n")
   ok <- readline(str_c("To do this automatically (for '", file.path("~", ".Rprofile"), "') type y:  "))
-  if(tolower(ok)=="y") cat("\n\n## Added by the goldfinger package on ", as.character(Sys.Date()), ":\n", rprofline, "\n\n", sep="", file=file.path("~", ".Rprofile"), append=TRUE)
+  if(tolower(ok)=="y"){
+    cat("\n\n## Added by the goldfinger package on ", as.character(Sys.Date()), ":\n", rprofline, "\n\n", sep="", file=file.path("~", ".Rprofile"), append=TRUE)
+    cat("R profile file appended\n")
+  }
 
   gf_check()
 
   ## Create a file to be sent for public registration:
-  cwd <- getwd()
-  save(name, email, user, version, date_time, public_key, file=str_c("goldfinger_", user, ".gfp"))
+  kp <- keypair_sodium(goldfinger:::users_sigkey, private_key, authenticated=FALSE)
+  public_encry <- encrypt_object(public_save, kp)
 
-  cat("We're done: please send the file '", str_c(cwd, "/goldfinger_", user, ".gfp"), "' to Matt\n", sep="")
+  saveRDS(public_encry, file=str_c("goldfinger_", user, ".gfp"), compress=compress)
+
+  cat("We're done: please send the following file to Matt:\n'", str_c(getwd(), "/goldfinger_", user, ".gfp"), "'\n", sep="")
 
   ## TODO: query online database to make sure this user does not already exist
 

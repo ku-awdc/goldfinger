@@ -1,8 +1,8 @@
 ---
-title: "GOLDFINGER"
+title: "goldfinger"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{GOLDFINGER}
+  %\VignetteIndexEntry{goldfinger}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -15,5 +15,5 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(GOLDFINGER)
+library("goldfinger")
 ```
