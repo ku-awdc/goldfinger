@@ -105,7 +105,7 @@ gf_all_keys <- function(refresh=FALSE, all_users=FALSE, fallback=TRUE){
     ss <- try({
       webloc <- "https://ku-awdc.github.io/rsc/goldfinger/goldfinger_users.gfp"
       tmpfl <- tempdir(check=TRUE)
-      download.file(webloc, file.path(tmpfl, "goldfinger_users.gfp"), quiet=TRUE)
+      download.file(webloc, file.path(tmpfl, "goldfinger_users.gfp"), quiet=TRUE, mode="wb")
       users_enc <- readRDS(file.path(tmpfl, "goldfinger_users.gfp"))
       unlink(file.path(tmpfl, "goldfiner_users.gfp"))
       live_data <- TRUE
