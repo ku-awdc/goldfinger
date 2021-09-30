@@ -6,10 +6,8 @@
 
 #' @rdname gf_utilities
 #' @export
-gf_check <- function(silent=FALSE){
+gf_check <- function(path = getOption('goldfinger_path'), silent=FALSE){
 
-  ## Find the location:
-  path <- getOption('goldfinger_path')
   if(is.null(path)) stop("Path to the goldfinger.gfu file not found: set options(goldfinger_path='...') and try again", call.=FALSE)
   if(!file.exists(path)) stop("No goldfinger.gfu file found at ", path)
   local <- readRDS(path)
@@ -48,7 +46,7 @@ gf_check <- function(silent=FALSE){
 gf_users <- function(fallback=TRUE, refresh=FALSE){
 
   ## Get all info:
-  all_keys <- gf_all_keys(refresh)
+  all_keys <- gf_all_keys(refresh=refresh, all_users = TRUE)
 
   ## Drop the public keys and convert to data frame:
   live_data <- attr(all_keys, "live_data", TRUE)
@@ -157,3 +155,5 @@ goldfinger_env$webcache <- NULL
 goldfinger_env$live_data <- FALSE
 goldfinger_env$localcache <- NULL
 goldfinger_env$local_user <- NULL
+## TODO: retrieve version automatically
+goldfinger_env$version <- "0.2.0-1"

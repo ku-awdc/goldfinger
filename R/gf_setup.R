@@ -67,8 +67,7 @@ gf_setup <- function(){
   private_encr <- encrypt_object(private_key, sym_key)
   stopifnot(identical(private_key, decrypt_object(private_encr, sym_key)))
 
-  ## TODO: retrieve version automatically
-  version <- "0.1.0-1"
+  version <- goldfinger_env$version
   date_time <- Sys.time()
 
   ## Create the storage file:

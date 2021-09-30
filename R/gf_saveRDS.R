@@ -11,7 +11,7 @@
 #'
 #' @rdname gf_saveRDS
 #' @export
-gf_saveRDS <- function(object, file=stop("file must be specified (.rdg file extension is recommended)"), user=character(0), local_user=TRUE, ascii = FALSE, version = NULL, compress="xz", overwrite=FALSE){
+gf_saveRDS <- function(object, file=stop("file must be specified (.rdg file extension is recommended)"), user=character(0), local_user=TRUE, comment = "", ascii = FALSE, version = NULL, compress="xz", overwrite=FALSE){
 
   if(file.exists(file) && !overwrite) stop("Specified file exists: use overwrite=TRUE if necessary", call.=FALSE)
 
@@ -53,7 +53,19 @@ gf_saveRDS <- function(object, file=stop("file must be specified (.rdg file exte
   ## Encrypt this for each user:
   decrypt_key <- lapply(user, function(u){
     public <- keys[[u]]$public_key
-    encrypt_object(sym_key, keypair_sodium(public, private_key))
+
+    rand <- sample.int(32)
+    key_rand <- sym_key[rand]
+    reorder <- order(rand)
+    stopifnot(all(key_rand[reorder]==sym_key))
+
+    keyval <- list(user = ifelse(u=="local_user", keys$local_user$user, u),
+                   key_rand = key_rand,
+                   reorder = reorder
+                   )
+    class(keyval) <- "goldfinger_symkey"
+
+    encrypt_object(serialize(keyval, NULL), keypair_sodium(public, private_key))
   })
   user[user=="local_user"] <- keys$local_user$user
   names(decrypt_key) <- user
@@ -62,7 +74,7 @@ gf_saveRDS <- function(object, file=stop("file must be specified (.rdg file exte
   object_encr <- data_encrypt(serialize(object, NULL), sym_key)
 
   ## Package the metadata:
-  metadata <- list(user=keys$local_user$user, public_key=keys$local_user$public_key, email=keys$local_user$email, date_time=Sys.time(), gf_type=gf_type)
+  metadata <- list(user=keys$local_user$user, public_key=keys$local_user$public_key, email=keys$local_user$email, comment=comment, package_version=goldfinger_env$version, date_time=Sys.time(), gf_type=gf_type)
 
   ## And save:
   saveRDS(list(metadata=metadata, decrypt=decrypt_key, object_encr=object_encr), file=file, compress=compress)
@@ -98,7 +110,10 @@ gf_readRDS <- function(file=stop("file must be specified (.rdg file extension is
     stop("The data has been tampered with", call.=FALSE)
   }
 
-  sym_key <- decrypt_object(fcon$decrypt[[keys$local_user$user]], keypair_sodium(fcon$metadata$public_key, private_key))
+  keyval <- unserialize(decrypt_object(fcon$decrypt[[keys$local_user$user]], keypair_sodium(fcon$metadata$public_key, private_key)))
+  stopifnot(inherits(keyval, "goldfinger_symkey"))
+  stopifnot(keyval$user == keys$local_user$user)
+  sym_key <- keyval$key_rand[keyval$reorder]
 
   return(unserialize(data_decrypt(fcon$object_encr, sym_key)))
 
