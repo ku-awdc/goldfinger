@@ -10,6 +10,7 @@ gf_saveRDS(
   file = stop("file must be specified (.rdg file extension is recommended)"),
   user = character(0),
   local_user = TRUE,
+  comment = "",
   ascii = FALSE,
   version = NULL,
   compress = "xz",

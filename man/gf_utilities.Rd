@@ -6,7 +6,7 @@
 \alias{gf_users}
 \title{Utilities for goldfinger encryption}
 \usage{
-gf_check(silent = FALSE)
+gf_check(path = getOption("goldfinger_path"), silent = FALSE)
 
 gf_users(fallback = TRUE, refresh = FALSE)
 }
