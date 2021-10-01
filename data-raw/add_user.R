@@ -6,7 +6,12 @@ library("keyring")
 library("cyphr")
 library("getPass")
 
-current_users <- gf_users(fallback=FALSE, refresh=TRUE)
+current_users <- goldfinger:::gf_all_keys(fallback=FALSE, refresh=TRUE)
+current_users$md <- current_users$local_user
+current_users$local_user <- NULL
+current_users$md$salt <- NULL
+current_users$md$private_encr <- NULL
+
 
 ## Protect the users file to prevent tampering:
 pass <- tryCatch(
@@ -41,9 +46,12 @@ for(nuf in new_users){
   names(updated_users) <- c(names(current_users), nu$user)
   current_users <- updated_users
 
+  stopifnot(all(names(current_users[[nuf]])==names(current_users[["md"]])))
+
   file.rename(file.path("data-raw", nuf), file.path("local", "imported_users", nuf))
 
 }
+stopifnot(all(sapply(current_users, length)==length(current_users[[1]])))
 
 kp_e <- keypair_sodium(fake_public, private_key)
 kp_d <- keypair_sodium(public_key, fake_private)

@@ -96,21 +96,28 @@ gf_localuser <- function(refresh=FALSE){
 
 }
 
-gf_all_keys <- function(refresh=FALSE, all_users=FALSE, fallback=TRUE){
+gf_all_keys <- function(refresh=FALSE, all_users=FALSE, fallback=TRUE, local=FALSE){
 
   ## Obtain the public keys of other users from the web resource:
   if(all_users && (refresh || is.null(goldfinger_env$webcache))){
-    ss <- try({
-      webloc <- "https://ku-awdc.github.io/rsc/goldfinger/goldfinger_users.gfp"
-      tmpfl <- tempdir(check=TRUE)
-      download.file(webloc, file.path(tmpfl, "goldfinger_users.gfp"), quiet=TRUE, mode="wb")
-      users_enc <- readRDS(file.path(tmpfl, "goldfinger_users.gfp"))
-      unlink(file.path(tmpfl, "goldfiner_users.gfp"))
-      live_data <- TRUE
-    })
-    if(inherits(ss,"try-error")){
-      if(!fallback) stop("Unable to download the goldfinger_users.gfp file from the internet", call.=FALSE)
-      warning("Unable to download the goldfinger_users.gfp file from the internet: using a cached version created during package build", call.=FALSE)
+    if(!local){
+      ss <- try({
+        webloc <- "https://ku-awdc.github.io/rsc/goldfinger/goldfinger_users.gfp"
+        tmpfl <- tempdir(check=TRUE)
+        download.file(webloc, file.path(tmpfl, "goldfinger_users.gfp"), quiet=TRUE, mode="wb")
+        users_enc <- readRDS(file.path(tmpfl, "goldfinger_users.gfp"))
+        unlink(file.path(tmpfl, "goldfiner_users.gfp"))
+        live_data <- TRUE
+      })
+
+      if(inherits(ss,"try-error")){
+        if(!fallback) stop("Unable to download the goldfinger_users.gfp file from the internet", call.=FALSE)
+        warning("Unable to download the goldfinger_users.gfp file from the internet: using a cached version created during package build", call.=FALSE)
+        instpub <- system.file("goldfinger_users.gfp", package = "goldfinger")
+        users_enc <- readRDS(instpub)
+        live_data <- FALSE
+      }
+    }else{
       instpub <- system.file("goldfinger_users.gfp", package = "goldfinger")
       users_enc <- readRDS(instpub)
       live_data <- FALSE
