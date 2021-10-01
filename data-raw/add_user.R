@@ -4,6 +4,7 @@ library("goldfinger")
 library("sodium")
 library("keyring")
 library("cyphr")
+library("getPass")
 
 current_users <- gf_users(fallback=FALSE, refresh=TRUE)
 
