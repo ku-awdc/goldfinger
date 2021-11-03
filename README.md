@@ -11,3 +11,14 @@ options(
 )
 install.packages("goldfinger")
 ```
+
+To set up a user:
+
+```r
+library("goldfinger")
+gf_setup()
+```
+
+and follow the instructions.
+
+More help will be added soon...
