@@ -6,6 +6,8 @@ library("keyring")
 library("cyphr")
 library("getPass")
 
+stop("gf_all_keys does not get all users, only local users!!!")
+
 current_users <- goldfinger:::gf_all_keys(fallback=FALSE, refresh=TRUE)
 current_users$md <- current_users$local_user
 current_users$local_user <- NULL
