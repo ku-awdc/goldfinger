@@ -6,14 +6,13 @@ library("keyring")
 library("cyphr")
 library("getPass")
 
-stop("gf_all_keys does not get all users, only local users!!!")
-
-current_users <- goldfinger:::gf_all_keys(fallback=FALSE, refresh=TRUE)
+current_users <- goldfinger:::gf_all_keys(fallback=FALSE, refresh=TRUE, all_users = TRUE)
 current_users$md <- current_users$local_user
 current_users$local_user <- NULL
 current_users$md$salt <- NULL
 current_users$md$private_encr <- NULL
 
+attr(current_users, "live_data") <- NULL
 
 ## Protect the users file to prevent tampering:
 pass <- tryCatch(
