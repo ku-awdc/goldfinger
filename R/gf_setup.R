@@ -13,9 +13,16 @@ gf_setup <- function(){
   ## May want to modify this:
   compress <- TRUE
 
-  ## First ask for name, email, username, password
-
   cat("#### Setup goldfinger encryption ####\n")
+
+  ## First ask for web link and password for users file
+  weblink <- readline(prompt="Setup link:  ")
+  # Should be in the format https://*link*#*password*
+  # Test validity:
+
+
+
+  ## Then ask for name, email, username, password
 
   ## Basic info:
   name <- readline(prompt="Name:  ")
@@ -98,5 +105,10 @@ gf_setup <- function(){
   cat("We're done: please send the following file to Matt:\n'", str_c(getwd(), "/goldfinger_", user, ".gfp"), "'\n", sep="")
 
   ## TODO: query online database to make sure this user does not already exist
+
+}
+
+#' @export
+gf_upgrade <- function(){
 
 }
