@@ -12,6 +12,8 @@ gf_check <- function(path = getOption('goldfinger_path'), silent=FALSE){
   if(!file.exists(path)) stop("No goldfinger.gfu file found at ", path)
   local <- readRDS(path)
 
+  # local <- gy_upgrade_user(local)
+
   ## Check that the symmetric encryption key can be found:
   pass <- tryCatch(
     key_get("goldfinger", username=local$user),
@@ -96,26 +98,6 @@ gf_localuser <- function(refresh=FALSE){
 
 }
 
-refresh_users <- function(weblink, fail=FALSE){
-  stopifnot(is.character(weblink), length(weblink)==1, !is.na(weblink))
-  stopifnot(is.logical(fail), length(fail)==1, !is.na(fail))
-
-  if(!str_detect(weblink, "#")) stop("Invalid setup link provided (no #)", call.=FALSE)
-  if(!str_detect(weblink, "^https://")) stop("Invalid setup link provided (not a URL)", call.=FALSE)
-
-  weblink <- str_split(weblink, "#")[[1]]
-  if(!length(weblink)==3) stop("Invalid setup link provided (cannot split twice on #)", call.=FALSE)
-
-  tmpfl <- tempdir(check=TRUE)
-  download.file(webloc, file.path(tmpfl, "users.gfp"), quiet=TRUE, mode="wb")
-  on.exit(unlink("users.gfp"))
-
-  users_enc <- readRDS(file.path(tmpfl, "goldfinger_users.gfp"))
-  unlink(file.path(tmpfl, "goldfiner_users.gfp"))
-  live_data <- TRUE
-
-
-}
 
 gf_all_keys <- function(refresh=FALSE, all_users=FALSE, fallback=TRUE, local=FALSE){
 

@@ -1,3 +1,6 @@
+
+## OLD VERSION:
+
 ## Script to add a user to the public key list
 
 library("goldfinger")

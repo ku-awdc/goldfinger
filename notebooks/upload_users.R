@@ -17,16 +17,16 @@ library(cyphr)
 
 # For now we will just use the temporary setup password
 
-weblink <- str_c("https://ku-awdc.github.io/rsc/goldfinger/users.gfp", "#", pwd, "#", "md")
+weblink <- str_c("https://ku-awdc.github.io/rsc/goldfinger/users.gyu", "#", pwd, "#", "md")
 
 keys_encr <- gy_encrypt(gy_serialise(users, method="base"), "all")
 stopifnot(all(names(users) %in% names(keys_encr$decrypt)))
 stopifnot(all(table(names(keys_encr$decrypt))==1))
 admin_public <- keys_encr$metadata$public_key
 
-usernames <- data_encrypt(gy_serialise(list(users = names(users), confirmation = str_c(hash(serialize(str_c(names(users), collapse="-"), NULL)), collapse=""), admin_public = admin_public), method="base"), sha256(charToRaw(pwd)))
+usernames <- data_encrypt(gy_serialise(list(group = "goldfinger", users = names(users), confirmation = str_c(hash(serialize(str_c(names(users), collapse="-"), NULL)), collapse=""), admin_public = admin_public), method="base"), sha256(charToRaw(pwd)))
 
 keys_encr
-newusers <- list(group="goldfinger", usernames=usernames, keys_encr = keys_encr, package_version=goldfinger:::goldfinger_env$version, date_time = Sys.time())
+newusers <- list(usernames=usernames, keys_encr = keys_encr, package_version=goldfinger:::goldfinger_env$version, date_time = Sys.time())
 
-saveRDS(newusers, "users.rdg", compress=FALSE)
+saveRDS(newusers, "users.gyu", compress=FALSE)
