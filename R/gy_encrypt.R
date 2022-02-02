@@ -11,14 +11,13 @@
 #'
 #' @rdname gy_encrypt
 #' @export
-gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = ""){
+gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "", encr_fun = NULL){
 
   if(!is.raw(object)) stop("The object argument must be a single serialised object", call.=FALSE)
 
   ser_method <- attr(object, "ser_method", exact=TRUE)
   if(is.null(ser_method)){
-    warning("The provided object did not have a serialization method attribute - assuming that this is base::serialize")
-    ser_method <- "base"
+    ser_method <- "custom"
   }
 
   localuser <- gf_localuser()
@@ -57,14 +56,26 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "")
   ## Generate a symmetric encryption key:
   sym_key <- keygen()
 
+  ## Wrap this key in the potentially user-supplied function:
+  if(is.null(encr_fun)){
+    encr_fun <- function(key) function() key
+  }
+  ## Run the encrypt function to obtain the decrypt function
+  # Note that this may have side effects of e.g. creating a file with a secondary key:
+  decr_fun <- encr_fun(sym_key)
+
+  if(!is.function(decr_fun)) stop("The encr_fun supplied must be a function that returns a function", call.=FALSE)
+  if(!is.null(formals(decr_fun))) stop("The encr_fun supplied must be a function that returns a function that has no arguments", call.=FALSE)
+  decr_fun <- serialize(decr_fun, NULL)
+
   ## Encrypt this for each user:
   decrypt_key <- lapply(user, function(u){
     public <- keys[[u]]$public_key
 
-    rand <- sample.int(32)
-    key_rand <- sym_key[rand]
+    rand <- sample.int(length(decr_fun))
+    key_rand <- decr_fun[rand]
     reorder <- order(rand)
-    stopifnot(all(key_rand[reorder]==sym_key))
+    stopifnot(all(key_rand[reorder]==decr_fun))
 
     keyval <- list(user = ifelse(u=="local_user", keys$local_user$user, u),
                    key_rand = key_rand,
@@ -102,7 +113,7 @@ gy_decrypt <- function(object){
 
   ## Determine the local user:
   localuser <- gf_localuser()
-  keys <- gf_all_keys(all_users = fcon$metadata$user != localuser)
+  keys <- gf_all_keys(all_users = object$metadata$user != localuser)
 
   ## Get private and public keys for this user:
   pass <- key_get("goldfinger", username=keys$local_user$user)
@@ -115,30 +126,32 @@ gy_decrypt <- function(object){
   if(!identical(public_key, public_test)) stop("Something went wrong: the public key cannot be regenerated", call.=FALSE)
 
   ## Find the relevant decrypt key:
-  if(! keys$local_user$user %in% names(fcon$decrypt)){
+  if(! keys$local_user$user %in% names(object$decrypt)){
     stop("You are not authorised to decrypt this file", call.=FALSE)
   }
 
-  if(fcon$metadata$user %in% names(keys) && !identical(fcon$metadata$public_key, keys[[fcon$metadata$user]]$public_key)){
+  if(object$metadata$user %in% names(keys) && !identical(object$metadata$public_key, keys[[object$metadata$user]]$public_key)){
     stop("The data has been tampered with", call.=FALSE)
   }
 
-  object <- fcon$decrypt[[keys$local_user$user]]
-  ser_method <- attr(object, "ser_method", exact=TRUE)
+  ser_method <- attr(object$object_encr, "ser_method", exact=TRUE)
   if(is.null(ser_method)){
     warning("The provided object did not have a serialization method attribute - assuming that this is base::serialize")
     ser_method <- "base"
   }
 
-
-  keyval <- unserialize(decrypt_object(, keypair_sodium(fcon$metadata$public_key, private_key)))
-  stopifnot(inherits(keyval, "goldeneye_symkey"))
-  stopifnot(keyval$user == keys$local_user$user)
-  sym_key <- keyval$key_rand[keyval$reorder]
+  enc_fun <- object$decrypt[[keys$local_user$user]]
+  decr_fun <- unserialize(decrypt_object(enc_fun, keypair_sodium(object$metadata$public_key, private_key)))
+  stopifnot(inherits(decr_fun, "goldeneye_symkey"))
+  stopifnot(decr_fun$user == keys$local_user$user)
+  sym_key <- unserialize(decr_fun$key_rand[decr_fun$reorder])()
 
   # Add ser_method
+  object <- data_decrypt(object$object_encr, sym_key)
 
-  return(unserialize(data_decrypt(fcon$object_encr, sym_key)))
+  attr(object, "ser_method") <- ser_method
+
+  return(object)
 
 }
 
@@ -148,6 +161,7 @@ gy_check <- function(object){
   # For potentially very old save versions:
   if(!is.null(object$metadata$package_version) && numeric_version(object$metadata$package_version) < 0.3){
     stop("Upgrading from version 1 or version 2 saves is not yet implemented", call.=FALSE)
+    # Probably need to decrypt here and then re-encrypt using the new function??
   }
   if(!inherits(object, "goldeneye")) stop("The object to be decrypted must have been created using gy_encrypt", call.=FALSE)
   stopifnot(!is.null(object$metadata$package_version) && numeric_version(object$metadata$package_version) >= 0.3)

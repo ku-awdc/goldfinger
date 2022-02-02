@@ -27,12 +27,14 @@ gy_serialise <- function(object, method="base", ...){
   }else if(method == "qs"){
     # qs::qserialize, with or without compression (default with):
     rv <- qserialize(x=object, ...)
+  }else if(method == "custom"){
+    stop("The custom serialisation method is invalid for this function", call.=FALSE)
   }else{
     stop("Serialisation method '", method, "' is not yet implemented - perhaps update the package?", call.=FALSE)
   }
 
   ## Add the serialization method as an attribute:
-  attr(rv, "ser_method") <- ser_method
+  attr(rv, "ser_method") <- method
 
   return(rv)
 }
@@ -63,6 +65,8 @@ gy_deserialise <- function(object, ...){
   }else if(method == "qs"){
     # qs::qdeserialize
     rv <- qdeserialize(x=object, ...)
+  }else if(method == "custom"){
+    stop("Unable to automatically deserialise custom-serialised objects", call.=FALSE)
   }else{
     stop("Deserialisation method '", method, "' is not yet implemented - perhaps update the package?", call.=FALSE)
   }
@@ -72,7 +76,7 @@ gy_deserialise <- function(object, ...){
 }
 
 # Common to both functions:
-serialization_options <- c("base", "qs")
+serialization_options <- c("custom", "base", "qs")
 
 #' @rdname gy_serialise
 #' @export

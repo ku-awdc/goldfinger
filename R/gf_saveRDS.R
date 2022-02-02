@@ -1,16 +1,5 @@
-#' @name gf_saveRDS
-#' @title Save and read encrypted RDS
-#' @param object
-#' @param file
-#' @param user
-#' @param local_user
-#' @param ascii
-#' @param version
-#' @param compress
-#' @param overwrite
-#'
-#' @rdname gf_saveRDS
-#' @export
+## Note:  old functions from version <= 2
+
 gf_saveRDS <- function(object, file=stop("file must be specified (.rdg file extension is recommended)"), user=character(0), local_user=TRUE, comment = "", ascii = FALSE, version = NULL, compress="xz", overwrite=FALSE){
 
   if(file.exists(file) && !overwrite) stop("Specified file exists: use overwrite=TRUE if necessary", call.=FALSE)
@@ -82,8 +71,6 @@ gf_saveRDS <- function(object, file=stop("file must be specified (.rdg file exte
 }
 
 
-#' @rdname gf_saveRDS
-#' @export
 gf_readRDS <- function(file=stop("file must be specified (.rdg file extension is recommended)")){
 
   fcon <- readRDS(file)

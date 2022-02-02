@@ -4,7 +4,13 @@
 \alias{gy_encrypt}
 \title{Encrypt and decrypt a pre-serialised object using goldeneye}
 \usage{
-gy_encrypt(object, user = character(0), local_user = TRUE, comment = "")
+gy_encrypt(
+  object,
+  user = character(0),
+  local_user = TRUE,
+  comment = "",
+  encr_fun = NULL
+)
 }
 \arguments{
 \item{overwrite}{}
