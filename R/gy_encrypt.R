@@ -15,6 +15,12 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "")
 
   if(!is.raw(object)) stop("The object argument must be a single serialised object", call.=FALSE)
 
+  ser_method <- attr(object, "ser_method", exact=TRUE)
+  if(is.null(ser_method)){
+    warning("The provided object did not have a serialization method attribute - assuming that this is base::serialize")
+    ser_method <- "base"
+  }
+
   localuser <- gf_localuser()
   keys <- gf_all_keys(all_users = length(user)>0)
   live_data <- attr(keys, "live_data", TRUE)
@@ -73,6 +79,8 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "")
 
   ## Encrypt the objects themselves using sodium directly:
   object_encr <- data_encrypt(object, sym_key)
+  # Add the serialization method as an attribute:
+  attr(object_encr, "ser_method") <- ser_method
 
   ## Package the metadata:
   metadata <- list(user=keys$local_user$user, public_key=keys$local_user$public_key, comment=comment, package_version=goldfinger_env$version, date_time=Sys.time())
@@ -115,10 +123,20 @@ gy_decrypt <- function(object){
     stop("The data has been tampered with", call.=FALSE)
   }
 
-  keyval <- unserialize(decrypt_object(fcon$decrypt[[keys$local_user$user]], keypair_sodium(fcon$metadata$public_key, private_key)))
+  object <- fcon$decrypt[[keys$local_user$user]]
+  ser_method <- attr(object, "ser_method", exact=TRUE)
+  if(is.null(ser_method)){
+    warning("The provided object did not have a serialization method attribute - assuming that this is base::serialize")
+    ser_method <- "base"
+  }
+
+
+  keyval <- unserialize(decrypt_object(, keypair_sodium(fcon$metadata$public_key, private_key)))
   stopifnot(inherits(keyval, "goldeneye_symkey"))
   stopifnot(keyval$user == keys$local_user$user)
   sym_key <- keyval$key_rand[keyval$reorder]
+
+  # Add ser_method
 
   return(unserialize(data_decrypt(fcon$object_encr, sym_key)))
 

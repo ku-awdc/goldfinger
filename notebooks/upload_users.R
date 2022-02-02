@@ -1,16 +1,14 @@
 ## TODO: cleanup and make into function
 
 # Users and pwd must already be available
-users
+users <- goldfinger:::gf_all_keys(TRUE, TRUE)
+users <- users[!names(users)=="local_user"]
 pwd
 
 library(sodium)
 library(cyphr)
 
-
-# Where did I get to:
-# Working on gy_serialise (choose between qs::qserialize and base::serialize, arguments are not important to save)
-
+# TODO: gy_encrypt should transfer method attr
 
 # TODO: online users file should contain:
 # 1. A temporary setup password (changed frequently) that just gets a list of current user names
@@ -21,9 +19,7 @@ library(cyphr)
 
 weblink <- str_c("https://ku-awdc.github.io/rsc/goldfinger/users.gfp", "#", pwd, "#", "md")
 
-users
-
-keys_encr <- goldfinger:::gy_encrypt(serialize(users, NULL), "all")
+keys_encr <- gy_encrypt(gy_serialise(users, "base"), "all")
 stopifnot(all(names(users) %in% names(keys_encr$decrypt)))
 stopifnot(all(table(names(keys_encr$decrypt))==1))
 admin_public <- keys_encr$metadata$public_key

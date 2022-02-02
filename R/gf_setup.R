@@ -20,6 +20,7 @@ gf_setup <- function(){
   # Should be in the format https://*link*#*password*
   # Test validity:
 
+  ## TODO:  check the username has not already been used, and contains only A-Za-z0-9
 
 
   ## Then ask for name, email, username, password

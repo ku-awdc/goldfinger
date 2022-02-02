@@ -30,7 +30,8 @@ Imports:
     getPass,
     sodium,
     cyphr,
-    stringr
+    stringr,
+    qs
 Depends:
     tidyverse
 Suggests: 
