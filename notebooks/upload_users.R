@@ -17,6 +17,12 @@ weblink <- paste0("https://ku-awdc.github.io/rsc/goldfinger/users.gyu", "#", pwd
 usernames <- names(users)
 
 keys <- list(group="goldfinger", package_version=goldfinger:::goldfinger_env$version, date_time = Sys.time(), usernames=usernames, users=users)
+check <- sha256(serialize(keys, NULL))
+verification <- gy_sign(check)
+## TODO: gy_sign and gy_verify functions
+
+keys <- c(keys, list(verification=verification))
+
 keys_encr <- data_encrypt(gy_serialise(keys, method="base"), sha256(charToRaw(pwd)))
 
 saveRDS(keys_encr, "users.gyu", compress=FALSE)
