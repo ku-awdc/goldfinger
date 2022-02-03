@@ -56,16 +56,17 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
   ## Generate a symmetric encryption key:
   sym_key <- keygen()
 
-  ## Wrap this key in the potentially user-supplied function:
   if(is.null(encr_fun)){
-    encr_fun <- function(key) function() key
-  }
-  ## Run the encrypt function to obtain the decrypt function
-  # Note that this may have side effects of e.g. creating a file with a secondary key:
-  decr_fun <- encr_fun(sym_key)
+    ## If there is no user-supplied function then just use the sym_key:
+    decr_fun <- sym_key
+  }else{
+    ## Otherwise run the encrypt function to obtain the decrypt function
+    # Note that this may have side effects of e.g. creating a file with a secondary key:
+    decr_fun <- encr_fun(sym_key)
 
-  if(!is.function(decr_fun)) stop("The encr_fun supplied must be a function that returns a function", call.=FALSE)
-  if(!is.null(formals(decr_fun))) stop("The encr_fun supplied must be a function that returns a function that has no arguments", call.=FALSE)
+    if(!is.function(decr_fun)) stop("The encr_fun supplied must be a function that returns a function", call.=FALSE)
+    if(!is.null(formals(decr_fun))) stop("The encr_fun supplied must be a function that returns a function that has no arguments", call.=FALSE)
+  }
   decr_fun <- serialize(decr_fun, NULL)
 
   ## Encrypt this for each user:
@@ -106,7 +107,7 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
 
 #' @rdname gf_encrypt
 #' @export
-gy_decrypt <- function(object){
+gy_decrypt <- function(object, run_function = FALSE){
 
   ## See if we are dealing with an old save format, and if so then upgrade:
   object <- upgrade_encrypt(object)
@@ -144,7 +145,22 @@ gy_decrypt <- function(object){
   decr_fun <- unserialize(decrypt_object(enc_fun, keypair_sodium(object$metadata$public_key, private_key)))
   stopifnot(inherits(decr_fun, "goldeneye_symkey"))
   stopifnot(decr_fun$user == keys$local_user$user)
-  sym_key <- unserialize(decr_fun$key_rand[decr_fun$reorder])()
+
+  # Unserialise:
+  decr_fun <- unserialize(decr_fun$key_rand[decr_fun$reorder])
+  if(is.raw(decr_fun)){
+    # If the key is just a key:
+    sym_key <- decr_fun
+  }else if(is.function(decr_fun)){
+    # If the key is a function then only run it if we have permission:
+    # (as we cannot vouch for potential side effects):
+    if(!run_function){
+      stop("The decryption algorithm requires running a function:  if you trust the source of the file then try again with the argument run_function=TRUE", call.=FALSE)
+    }
+    sym_key <- decr_fun()
+  }else{
+    stop("The decryption key/function is invalid", call.=FALSE)
+  }
 
   # Add ser_method
   object <- data_decrypt(object$object_encr, sym_key)

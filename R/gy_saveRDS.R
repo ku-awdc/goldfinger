@@ -33,13 +33,13 @@ gy_saveRDS <- function(object, file=stop("file must be specified (.rdg file exte
 
 #' @rdname gy_saveRDS
 #' @export
-gy_readRDS <- function(file=stop("file must be specified (.rdg file extension is recommended)")){
+gy_readRDS <- function(file=stop("file must be specified (.rdg file extension is recommended)"), run_function=FALSE){
 
   ## Read file:
   enc_obj <- readRDS(file)
 
   ## Unencrypt and deserialise:
-  ser_obj <- gy_decrypt(enc_obj)
+  ser_obj <- gy_decrypt(enc_obj, run_function=run_function)
   object <- gy_deserialise(ser_obj)
 
   return(object)

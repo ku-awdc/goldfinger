@@ -16,23 +16,28 @@ gy_setup <- function(){
   weblink <- readline(prompt="Setup link:  ")
   # Should be in the format https://*link*#*password*#*admin*
   # Test validity and obtain current user information:
-  usernames <- setup_users(weblink)
+  keys <- refresh_users(weblink)
 
-  ## TODO: got to here
-
-  ## TODO:  check the username has not already been used, and contains only A-Za-z0-9
-
-  ## TODO: save admin_user, admin_public, group inside .gyp file
-
-  ## Then ask for name, email, username, password
-
-  ## Basic info:
+  ## Then ask for name, email, username:
   name <- readline(prompt="Name:  ")
   email <- readline(prompt="Email:  ")
-  tuser <- str_remove(email, "@.*")
-  user <- readline(prompt=str_c("Username (leave blank to accept ", tuser, "):  "))
-  if(user=="") user <- tuser
-  if(tolower(user)=="local_user") stop("The username 'local_user' cannot be used", call. = FALSE)
+  tuser <- tolower(str_remove(email, "@.*"))
+  chkuser <- function(user, err=FALSE){
+    msg <- ""
+    if(tolower(user)=="local_user") msg <- ("The username 'local_user' cannot be used")
+    if(tolower(user)=="all") msg <- ("The username 'all' cannot be used")
+    if(gsub("[[:alnum:]]","",user)!="") msg <- ("The username can only contain letters and numbers")
+    if(tolower(user) %in% tolower(keys$usernames)) msg <- ("That username is already taken: to re-use your own username please contact the group admin")
+    if(err && msg!="") stop(msg, call.=FALSE)
+    invisible(msg)
+  }
+  if(chkuser(tuser, err=FALSE)==""){
+    user <- tolower(readline(prompt=str_c("Username (leave blank to accept ", tuser, "):  ")))
+    if(user=="") user <- tuser
+  }else{
+    user <- tolower(readline(prompt=str_c("Username:  ")))
+  }
+  chkuser(user, err=TRUE)
 
   ## Password:
   repeat{
@@ -44,8 +49,8 @@ gy_setup <- function(){
 
   ## File locations:
   repeat{
-    filename <- readline(prompt=str_c("User file (leave blank to accept goldfinger_", user, ".gfu):  "))
-    if(filename=="") filename <- str_c("goldfinger_", user, ".gfu")
+    filename <- readline(prompt=str_c("User file (leave blank to accept ", keys$group, "_", user, ".gyp):  "))
+    if(filename=="") filename <- str_c(keys$group, "_", user, ".gyp")
     cat("Please select a location to store this file...\n")
     # rstudioapi version:
     if(isAvailable("1.1.288")){
@@ -64,7 +69,7 @@ gy_setup <- function(){
   }
 
   # Store the password:
-  key_set_with_value("goldfinger", user, pass)
+  key_set_with_value("goldeneye", str_c(keys$group, ":", user), pass)
   # Generate and store a salt:
   salt <- str_c(sample(c(letters,LETTERS,0:9),6),collapse="")
   # Convert to symmetric encryption key:
@@ -80,38 +85,38 @@ gy_setup <- function(){
   date_time <- Sys.time()
 
   ## Create the storage file:
-  public_save <- list(name=name, email=email, user=user, version=version, date_time=date_time, public_key=public_key)
-  saveRDS(c(public_save, list(salt=salt, private_encr=private_encr)), file=file.path(path, filename), compress=compress)
+  public_save <- list(name=name, email=email, user=user, version=version, date_time=date_time, public_key=public_key, group=keys$group)
+  saveRDS(c(public_save, list(salt=salt, private_encr=private_encr, admin_public=keys$admin_public)), file=file.path(path, filename), compress=FALSE)
 
   cat("#### Setup complete ####\n")
 
   ## Add the path to the storage file to the user's Rprofile:
 
-  rprofline <- str_c("options(goldfinger_path='", file.path(path, filename), "')\n")
+  rprofline <- str_c("options(goldeneye_path='", file.path(path, filename), "')\n")
   eval(parse(text=rprofline))
-  cat("In order for goldfinger to work between R sessions, you need\nto add the following line to your R profile:\n", rprofline, "\n")
+  cat("In order for goldeneye to work between R sessions, you need\nto add the following line to your R profile:\n", rprofline, "\n")
   ok <- readline(str_c("To do this automatically (for '", file.path("~", ".Rprofile"), "') type y:  "))
   if(tolower(ok)=="y"){
-    cat("\n\n## Added by the goldfinger package on ", as.character(Sys.Date()), ":\n", rprofline, "\n\n", sep="", file=file.path("~", ".Rprofile"), append=TRUE)
+    cat("\n\n## Added by the goldeneye package on ", as.character(Sys.Date()), ":\n", rprofline, "\n\n", sep="", file=file.path("~", ".Rprofile"), append=TRUE)
     cat("R profile file appended\n")
   }
 
-  gf_check()
+  gy_check()
 
   ## Create a file to be sent for public registration:
-  kp <- keypair_sodium(users_sigkey, private_key, authenticated=FALSE)
-  public_encry <- encrypt_object(public_save, kp)
+  public_encry <- simple_encrypt(serialize(public_save, NULL), keys$admin_public)
 
-  saveRDS(public_encry, file=str_c("goldfinger_", user, ".gyp"), compress=compress)
+  pfilen <- str_c(keys$group, "_", user, "_public.gyp")
+  saveRDS(public_encry, file=pfilen, compress=FALSE)
 
-  cat("We're done: please send the following file to Matt:\n'", str_c(getwd(), "/goldfinger_", user, ".gfp"), "'\n", sep="")
+  cat("Account creation complete: please send the following file to the group admin:\n'", pfilen, "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
 
-  ## TODO: query online database to make sure this user does not already exist
+  ## TODO: add something more about GDPR ??
 
 }
 
 # This function only gets called to set up a new user for a group:
-setup_users <- function(weblink){
+refresh_users <- function(weblink, silent=FALSE){
 
   stopifnot(is.character(weblink), length(weblink)==1, !is.na(weblink))
   if(!str_detect(weblink, "#")) stop("Invalid setup link provided (no #)", call.=FALSE)
@@ -120,42 +125,25 @@ setup_users <- function(weblink){
   weblink <- str_split(weblink, "#")[[1]]
   if(!length(weblink)==3) stop("Invalid setup link provided (cannot split twice on #)", call.=FALSE)
 
+  if(!silent) cat("Downloading user list...\n")
   tmpfl <- tempdir(check=TRUE)
   download.file(weblink[1], file.path(tmpfl, "users.gyu"), quiet=TRUE, mode="wb")
   on.exit(unlink(file.path(tmpfl, "users.gyu")))
 
   users_enc <- readRDS(file.path(tmpfl, "users.gyu"))
-  group <- users_enc$group
-  usernames <- unserialize(data_decrypt(users_enc$usernames, sha256(charToRaw(weblink[2]))))
+  keys <- unserialize(data_decrypt(users_enc, sha256(charToRaw(weblink[2]))))
 
-  return(usernames)
-}
+  ## Cache within environment:
+  goldfinger_env$webcache[[keys$group]] <- keys$users
 
-# This function gets called to refresh users (typically once per R session) after joining the group:
-refresh_users <- function(weblink, admin_user, admin_public){
+  ## Retrieve the public key of the admin for setup:
+  keys$admin_public <- keys$users[[weblink[3]]]$public_key
+  keys$weburl <- weblink[1]
 
-  stopifnot(is.character(weblink), length(weblink)==1, !is.na(weblink))
-  if(!str_detect(weblink, "^https://")) stop("Invalid setup link provided (not a URL)", call.=FALSE)
-
-  tmpfl <- tempdir(check=TRUE)
-  download.file(weblink[1], file.path(tmpfl, "users.gyu"), quiet=TRUE, mode="wb")
-  on.exit(unlink(file.path(tmpfl, "users.gyu")))
-  users_enc <- readRDS(file.path(tmpfl, "users.gyu"))
-
-  ## TODO: got to here
-  stop("TODO: check validity of public key")
-  if(!all(users_enc$keys_encr$metadata$user == admin_user)){
-    stop()
-  }
-  if(!all(users_enc$keys_encr$metadata$public_key == admin_public)){
-    stop()
-  }
-
-  users <- gy_deserialise(gy_decrypt(users_enc$keys_encr))
-  return(users)
+  invisible(keys)
 }
 
 # Function called repeatedly in a session:
-get_users <- function(all=FALSE, refresh=FALSE){
+get_users <- function(group=goldfinger_env$group, all_users=FALSE, refresh=FALSE){
   stop("TODO")
 }

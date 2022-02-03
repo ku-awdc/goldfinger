@@ -2,6 +2,8 @@ upgrade_user <- function(user){
 
   # Format change from version <=2 to version 3:
 
+  # gsub goldfinger -> goldeneye in R profile
+  # update name of password to group:username
 
 }
 

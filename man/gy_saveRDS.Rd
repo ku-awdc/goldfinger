@@ -19,7 +19,8 @@ gy_saveRDS(
 )
 
 gy_readRDS(
-  file = stop("file must be specified (.rdg file extension is recommended)")
+  file = stop("file must be specified (.rdg file extension is recommended)"),
+  run_function = FALSE
 )
 }
 \arguments{

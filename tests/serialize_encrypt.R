@@ -8,9 +8,6 @@ stopifnot(identical(x, gy_deserialise(obj1)))
 obj2 <- gy_serialise(x, "q", preset="archive")
 stopifnot(identical(x, gy_deserialise(obj2)))
 
-object.size(obj1)
-object.size(obj2)
-
 stopifnot(object.size(obj2) < object.size(obj1))
 
 enc1 <- gy_encrypt(obj1)
@@ -35,7 +32,7 @@ encfun <- function(x){
   }
 }
 enc3 <- gy_encrypt(obj2, encr_fun = encfun)
-stopifnot(identical(x, gy_deserialise(gy_decrypt(enc3))))
+stopifnot(identical(x, gy_deserialise(gy_decrypt(enc3, run_function = TRUE))))
 
 gy_saveRDS(x, "test.rdg")
 stopifnot(identical(x, gy_readRDS("test.rdg")))
