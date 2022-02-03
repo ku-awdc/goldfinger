@@ -10,6 +10,14 @@
 #' @export
 gy_setup <- function(){
 
+  ## TODO: we need a pairfor key (for signing) as well as curve key (encryption)
+  sig_private <- sig_keygen()
+  sig_public <- sig_pubkey(sig_private)
+
+  tt <- sig_sign(serialize("hello", NULL), sig_private)
+  sig_verify(serialize("hello", NULL), tt, sig_public)
+
+
   cat("#### Setup goldeneye encryption ####\n")
 
   ## First ask for web link and password for users file
