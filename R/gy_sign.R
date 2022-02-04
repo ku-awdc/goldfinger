@@ -75,6 +75,7 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
   }
 
   ## Verify:
+  save(object, signature, public_ed, file="debug_file_for_matt.rda")
   ok <- try(sig_verify(object, signature, public_ed))
 
   if(inherits(ok, "try-error")) ok <- FALSE
