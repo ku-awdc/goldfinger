@@ -14,13 +14,13 @@ gy_saveRDS(
   comment = "",
   overwrite = FALSE,
   ascii = FALSE,
-  encr_fun = NULL,
+  funs = list(type = "identity"),
   ...
 )
 
 gy_readRDS(
   file = stop("file must be specified (.rdg file extension is recommended)"),
-  run_function = FALSE
+  run_custom = TRUE
 )
 }
 \arguments{

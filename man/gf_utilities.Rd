@@ -3,12 +3,9 @@
 \name{gf_utilities}
 \alias{gf_utilities}
 \alias{gf_check}
-\alias{gf_users}
 \title{Utilities for goldfinger encryption}
 \usage{
 gf_check(path = getOption("goldfinger_path"), silent = FALSE)
-
-gf_users(fallback = TRUE, refresh = FALSE)
 }
 \arguments{
 \item{silent}{}

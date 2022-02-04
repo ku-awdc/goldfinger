@@ -9,7 +9,7 @@ gy_encrypt(
   user = character(0),
   local_user = TRUE,
   comment = "",
-  encr_fun = NULL
+  funs = list(type = "identity")
 )
 }
 \arguments{

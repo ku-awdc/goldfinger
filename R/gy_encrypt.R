@@ -11,7 +11,7 @@
 #'
 #' @rdname gy_encrypt
 #' @export
-gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "", encr_fun = NULL){
+gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "", funs = list(type="identity")){
 
   if(!is.raw(object)) stop("The object argument must be a single serialised object", call.=FALSE)
 
@@ -20,9 +20,8 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
     ser_method <- "custom"
   }
 
-  localuser <- gf_localuser()
-  keys <- gf_all_keys(all_users = length(user)>0)
-  live_data <- attr(keys, "live_data", TRUE)
+  localuser <- get_localuser()
+  keys <- get_users(all_users=length(user)>0)
 
   ## Shortcut for all users:
   if("all" %in% user){
@@ -41,13 +40,11 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
     user <- c(user, "local_user")
   }
 
-  stopifnot(localuser==keys$local_user$user)
-
   ## Get private and public keys for this user:
-  pass <- key_get("goldfinger", username=keys$local_user$user)
-  pass_key <- key_sodium(sha256(charToRaw(str_c(keys$local_user$salt,pass))))
-  private_key <- decrypt_object(keys$local_user$private_encr, pass_key)
-  public_key <- keys$local_user$public_key
+  pass <- get_password(username=localuser$keyringuser)
+  pass_key <- hash(charToRaw(str_c(localuser$salt,pass)))
+  private_key <- data_decrypt(localuser$encr_curve, pass_key)
+  public_key <- localuser$public_curve
 
   ## Validate with the public key:
   public_test <- pubkey(private_key)
@@ -56,46 +53,61 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
   ## Generate a symmetric encryption key:
   sym_key <- keygen()
 
-  if(is.null(encr_fun)){
-    ## If there is no user-supplied function then just use the sym_key:
-    decr_fun <- sym_key
-  }else{
-    ## Otherwise run the encrypt function to obtain the decrypt function
-    # Note that this may have side effects of e.g. creating a file with a secondary key:
-    decr_fun <- encr_fun(sym_key)
-
-    if(!is.function(decr_fun)) stop("The encr_fun supplied must be a function that returns a function", call.=FALSE)
-    if(!is.null(formals(decr_fun))) stop("The encr_fun supplied must be a function that returns a function that has no arguments", call.=FALSE)
+  ## Process the encr_fun types:
+  if(!is.list(funs) || !"type" %in% names(funs)){
+    stop("The funs argument must be a list, with first element 'type'", call.=FALSE)
   }
-  decr_fun <- serialize(decr_fun, NULL)
+  if(".x" %in% names(funs)) stop("The name .x is reserved and cannot be in funs", call.=FALSE)
+  type <- funs[["type"]]
+
+  # Currently only two supported options:
+  ## TODO: more types, and make run_custom=FALSE default
+  if(type=="identity"){
+    # Nothing to do here:
+    encr_fun <- function(x) x
+    decr_fun <- function(x) x
+  }else if(type=="custom"){
+    if(!all(c("encr_fun","decr_fun") %in% names(funs))) stop("For custom funs you must supply both encr_fun and decr_fun")
+    encr_fun <- funs$encr_fun
+    if(!is.function(encr_fun)) stop("The encr_fun supplied must be a function", call.=FALSE)
+    if(!length(formals(encr_fun))==1) stop("The encr_fun supplied must be a function that takes a single argument", call.=FALSE)
+    decr_fun <- funs$decr_fun
+    if(!is.function(decr_fun)) stop("The decr_fun supplied must be a function", call.=FALSE)
+    if(!length(formals(decr_fun))==1) stop("The decr_fun supplied must be a function that takes a single argument", call.=FALSE)
+  }
+
+  ## Check encr_fun and decr_fun are symmetric:
+  funs$.x <- encr_fun(sym_key)
+  if(!identical(sym_key, decr_fun(funs[[".x"]]))) stop("The provided encr_fun and decr_fun are not symmetric", call.=FALSE)
+  funs <- serialize(funs, NULL)
 
   ## Encrypt this for each user:
   decrypt_key <- lapply(user, function(u){
-    public <- keys[[u]]$public_key
+    public <- if(u=="local_user") localuser$public_curve else keys[[u]]$public_curve
 
-    rand <- sample.int(length(decr_fun))
-    key_rand <- decr_fun[rand]
+    rand <- sample.int(length(funs))
+    key_rand <- funs[rand]
     reorder <- order(rand)
-    stopifnot(all(key_rand[reorder]==decr_fun))
+    stopifnot(all(key_rand[reorder]==funs))
 
-    keyval <- list(user = ifelse(u=="local_user", keys$local_user$user, u),
+    keyval <- list(user = ifelse(u=="local_user", localuser$user, u),
                    key_rand = key_rand,
                    reorder = reorder
     )
     class(keyval) <- "goldeneye_symkey"
 
-    encrypt_object(serialize(keyval, NULL), keypair_sodium(public, private_key))
+    auth_encrypt(serialize(keyval, NULL), private_key, public)
   })
-  user[user=="local_user"] <- keys$local_user$user
+  user[user=="local_user"] <- localuser$user
   names(decrypt_key) <- user
 
-  ## Encrypt the objects themselves using sodium directly:
+  ## Encrypt the objects themselves:
   object_encr <- data_encrypt(object, sym_key)
   # Add the serialization method as an attribute:
   attr(object_encr, "ser_method") <- ser_method
 
   ## Package the metadata:
-  metadata <- list(user=keys$local_user$user, public_key=keys$local_user$public_key, comment=comment, package_version=goldfinger_env$version, date_time=Sys.time())
+  metadata <- list(user=localuser$user, public_curve=localuser$public_curve, comment=comment, minimum_version="0.3.0", package_version=goldfinger_env$version, date_time=Sys.time())
 
   ## And return:
   retval <- list(group="goldfinger", metadata=metadata, decrypt=decrypt_key, object_encr=object_encr)
@@ -107,32 +119,38 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
 
 #' @rdname gf_encrypt
 #' @export
-gy_decrypt <- function(object, run_function = FALSE){
+gy_decrypt <- function(object, run_custom = TRUE){
 
   ## See if we are dealing with an old save format, and if so then upgrade:
   object <- upgrade_encrypt(object)
 
   ## Determine the local user:
-  localuser <- gf_localuser()
-  keys <- gf_all_keys(all_users = object$metadata$user != localuser)
+  localuser <- get_localuser()
+  keys <- get_users(all_users = object$metadata$user != localuser$user)
 
   ## Get private and public keys for this user:
-  pass <- key_get("goldfinger", username=keys$local_user$user)
-  pass_key <- key_sodium(sha256(charToRaw(str_c(keys$local_user$salt,pass))))
-  private_key <- decrypt_object(keys$local_user$private_encr, pass_key)
-  public_key <- keys$local_user$public_key
+  pass <- get_password(localuser$keyringuser)
+  pass_key <- hash(charToRaw(str_c(localuser$salt,pass)))
+  private_key <- data_decrypt(localuser$encr_curve, pass_key)
+  public_key <- localuser$public_curve
 
   ## Validate with the public key:
   public_test <- pubkey(private_key)
   if(!identical(public_key, public_test)) stop("Something went wrong: the public key cannot be regenerated", call.=FALSE)
 
   ## Find the relevant decrypt key:
-  if(! keys$local_user$user %in% names(object$decrypt)){
+  if(! localuser$user %in% names(object$decrypt)){
     stop("You are not authorised to decrypt this file", call.=FALSE)
   }
 
-  if(object$metadata$user %in% names(keys) && !identical(object$metadata$public_key, keys[[object$metadata$user]]$public_key)){
-    stop("The data has been tampered with", call.=FALSE)
+  if(object$metadata$user %in% names(keys)){
+    if(!identical(object$metadata$public_curve, keys[[object$metadata$user]][["public_curve"]])){
+      stop("The data has been tampered with", call.=FALSE)
+    }
+  }else{
+    if(object$metadata$user != localuser$user){
+      warning("The user that sent this file is not registered with the group", call.=FALSE)
+    }
   }
 
   ser_method <- attr(object$object_encr, "ser_method", exact=TRUE)
@@ -141,23 +159,28 @@ gy_decrypt <- function(object, run_function = FALSE){
     ser_method <- "base"
   }
 
-  enc_fun <- object$decrypt[[keys$local_user$user]]
-  decr_fun <- unserialize(decrypt_object(enc_fun, keypair_sodium(object$metadata$public_key, private_key)))
-  stopifnot(inherits(decr_fun, "goldeneye_symkey"))
-  stopifnot(decr_fun$user == keys$local_user$user)
+  crypt <- object$decrypt[[localuser$user]]
+  uncrypt <- unserialize(auth_decrypt(crypt, private_key, object$metadata$public_curve))
+  stopifnot(inherits(uncrypt, "goldeneye_symkey"))
+  stopifnot(uncrypt$user == localuser$user)
 
   # Unserialise:
-  decr_fun <- unserialize(decr_fun$key_rand[decr_fun$reorder])
-  if(is.raw(decr_fun)){
+  funs <- unserialize(uncrypt$key_rand[uncrypt$reorder])
+  stopifnot("type" %in% names(funs))
+  type <- funs[["type"]]
+
+  if(type=="identity"){
     # If the key is just a key:
-    sym_key <- decr_fun
-  }else if(is.function(decr_fun)){
+    sym_key <- funs[[".x"]]
+  }else if(type=="custom"){
+    stopifnot("decr_fun" %in% names(funs))
+
     # If the key is a function then only run it if we have permission:
     # (as we cannot vouch for potential side effects):
-    if(!run_function){
-      stop("The decryption algorithm requires running a function:  if you trust the source of the file then try again with the argument run_function=TRUE", call.=FALSE)
+    if(!run_custom){
+      stop("The decryption algorithm requires running a function:  if you trust the source of the file then try again with the argument run_custom=TRUE", call.=FALSE)
     }
-    sym_key <- decr_fun()
+    sym_key <- funs[["decr_fun"]](funs[[".x"]])
   }else{
     stop("The decryption key/function is invalid", call.=FALSE)
   }

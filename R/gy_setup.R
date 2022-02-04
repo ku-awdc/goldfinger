@@ -3,20 +3,11 @@
 #' @importFrom stringr str_remove str_c
 #' @importFrom getPass getPass
 #' @importFrom keyring key_set_with_value key_get key_list key_delete
-#' @importFrom sodium sha256 keygen pubkey data_encrypt data_decrypt
-#' @importFrom cyphr key_sodium keypair_sodium encrypt_object decrypt_object
+#' @importFrom sodium hash keygen pubkey sig_keygen sig_pubkey data_encrypt data_decrypt sig_sign sig_verify simple_encrypt simple_decrypt auth_encrypt auth_decrypt
 #' @importFrom rstudioapi selectDirectory isAvailable
 #'
 #' @export
 gy_setup <- function(){
-
-  ## TODO: we need a pairfor key (for signing) as well as curve key (encryption)
-  sig_private <- sig_keygen()
-  sig_public <- sig_pubkey(sig_private)
-
-  tt <- sig_sign(serialize("hello", NULL), sig_private)
-  sig_verify(serialize("hello", NULL), tt, sig_public)
-
 
   cat("#### Setup goldeneye encryption ####\n")
 
@@ -24,7 +15,7 @@ gy_setup <- function(){
   weblink <- readline(prompt="Setup link:  ")
   # Should be in the format https://*link*#*password*#*admin*
   # Test validity and obtain current user information:
-  keys <- refresh_users(weblink)
+  keys <- refresh_users(weblink, setup=TRUE)
 
   ## Then ask for name, email, username:
   name <- readline(prompt="Name:  ")
@@ -34,8 +25,9 @@ gy_setup <- function(){
     msg <- ""
     if(tolower(user)=="local_user") msg <- ("The username 'local_user' cannot be used")
     if(tolower(user)=="all") msg <- ("The username 'all' cannot be used")
+    if(tolower(user)=="admin") msg <- ("The username 'admin' cannot be used")
     if(gsub("[[:alnum:]]","",user)!="") msg <- ("The username can only contain letters and numbers")
-    if(tolower(user) %in% tolower(keys$usernames)) msg <- ("That username is already taken: to re-use your own username please contact the group admin")
+    if(tolower(user) %in% tolower(keys$users$usernames)) msg <- ("That username is already taken: to re-use your own username please contact the group admin")
     if(err && msg!="") stop(msg, call.=FALSE)
     invisible(msg)
   }
@@ -81,20 +73,45 @@ gy_setup <- function(){
   # Generate and store a salt:
   salt <- str_c(sample(c(letters,LETTERS,0:9),6),collapse="")
   # Convert to symmetric encryption key:
-  sym_key <- key_sodium(sha256(charToRaw(str_c(salt,pass))))
-  # Set up asymmetric key pair:
-  private_key <- keygen()
-  public_key <- pubkey(private_key)
-  # Then encrypt the private key:
-  private_encr <- encrypt_object(private_key, sym_key)
-  stopifnot(identical(private_key, decrypt_object(private_encr, sym_key)))
+  sym_key <- hash(charToRaw(str_c(salt,pass)), size=32)
 
-  version <- goldfinger_env$version
-  date_time <- Sys.time()
+  ## Set up asymmetric curve25519 key pair for encryption:
+  private_curve <- keygen()
+  public_curve <- pubkey(private_curve)
+  # Then encrypt the private curve key:
+  encr_curve <- data_encrypt(private_curve, sym_key)
+  stopifnot(identical(private_curve, data_decrypt(encr_curve, sym_key)))
+
+  ## Set up asymmetric ed25519 key pair for signing:
+  private_ed <- sig_keygen()
+  public_ed <- sig_pubkey(private_ed)
+  # Then encrypt the private ed key:
+  encr_ed <- data_encrypt(private_ed, sym_key)
+  stopifnot(identical(private_ed, data_decrypt(encr_ed, sym_key)))
+
+  ## Tests:
+  msg <- serialize("test", NULL)
+  tt <- sig_sign(msg, private_ed)
+  stopifnot(sig_verify(msg, tt, public_ed))
+  tt <- simple_encrypt(msg, public_curve)
+  stopifnot(identical(msg, simple_decrypt(tt, private_curve)))
 
   ## Create the storage file:
-  public_save <- list(name=name, email=email, user=user, version=version, date_time=date_time, public_key=public_key, group=keys$group)
-  saveRDS(c(public_save, list(salt=salt, private_encr=private_encr, admin_public=keys$admin_public)), file=file.path(path, filename), compress=FALSE)
+  group <- keys[["group"]]
+  version <- goldfinger_env[["version"]]
+  date_time <- Sys.time()
+
+  public_save <- list(user=user, name=name, email=email, version=version, date_time=date_time, public_curve=public_curve, public_ed=public_ed)
+
+  # Allow a single profile file to contain multiple groups (assuming that username and key are the same, so just the admin key differs):
+  admin_ed <- list(keys[["admin_ed"]])
+  names(admin_ed) <- group
+
+  private_save <- c(public_save, list(salt=salt, encr_curve=encr_curve, encr_ed=encr_ed, admin_ed=admin_ed, weblink=weblink))
+  saveRDS(private_save, file=file.path(path, filename), compress=FALSE)
+
+  public_save <- c(public_save, list(group=group))
+
 
   cat("#### Setup complete ####\n")
 
@@ -109,49 +126,19 @@ gy_setup <- function(){
     cat("R profile file appended\n")
   }
 
-  gy_check()
+  gy_userfile()
 
   ## Create a file to be sent for public registration:
-  public_encry <- simple_encrypt(serialize(public_save, NULL), keys$admin_public)
+  public_encry <- data_encrypt(serialize(public_save, NULL), hash(charToRaw(keys$webpwd)))
 
   pfilen <- str_c(keys$group, "_", user, "_public.gyp")
   saveRDS(public_encry, file=pfilen, compress=FALSE)
 
-  cat("Account creation complete: please send the following file to the group admin:\n'", pfilen, "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
+  cat("Account creation complete: please send the following file to the group admin:  '", pfilen, "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
+
+  goldfinger_env$group <- keys$group
 
   ## TODO: add something more about GDPR ??
 
 }
 
-# This function only gets called to set up a new user for a group:
-refresh_users <- function(weblink, silent=FALSE){
-
-  stopifnot(is.character(weblink), length(weblink)==1, !is.na(weblink))
-  if(!str_detect(weblink, "#")) stop("Invalid setup link provided (no #)", call.=FALSE)
-  if(!str_detect(weblink, "^https://")) stop("Invalid setup link provided (not a URL)", call.=FALSE)
-
-  weblink <- str_split(weblink, "#")[[1]]
-  if(!length(weblink)==3) stop("Invalid setup link provided (cannot split twice on #)", call.=FALSE)
-
-  if(!silent) cat("Downloading user list...\n")
-  tmpfl <- tempdir(check=TRUE)
-  download.file(weblink[1], file.path(tmpfl, "users.gyu"), quiet=TRUE, mode="wb")
-  on.exit(unlink(file.path(tmpfl, "users.gyu")))
-
-  users_enc <- readRDS(file.path(tmpfl, "users.gyu"))
-  keys <- unserialize(data_decrypt(users_enc, sha256(charToRaw(weblink[2]))))
-
-  ## Cache within environment:
-  goldfinger_env$webcache[[keys$group]] <- keys$users
-
-  ## Retrieve the public key of the admin for setup:
-  keys$admin_public <- keys$users[[weblink[3]]]$public_key
-  keys$weburl <- weblink[1]
-
-  invisible(keys)
-}
-
-# Function called repeatedly in a session:
-get_users <- function(group=goldfinger_env$group, all_users=FALSE, refresh=FALSE){
-  stop("TODO")
-}

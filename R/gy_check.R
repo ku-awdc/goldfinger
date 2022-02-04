@@ -6,39 +6,50 @@
 
 #' @rdname gy_check
 #' @export
-gy_check <- function(path = getOption('goldfinger_path'), silent=FALSE){
+gy_userfile <- function(path = getOption('goldeneye_path'), silent=FALSE){
 
-  if(is.null(path)) stop("Path to the goldfinger.gfu file not found: set options(goldfinger_path='...') and try again", call.=FALSE)
-  if(!file.exists(path)) stop("No goldfinger.gfu file found at ", path)
-  local <- readRDS(path)
+  # For backwards compatibility:
+  if(is.null(path)) path <- getOption('goldfinger_path')
 
-  # local <- gy_upgrade_user(local)
+  if(is.null(path)) stop("Path to the goldeneye user file not found: set options(goldeneye_path='...') and try again", call.=FALSE)
+  if(!file.exists(path)) stop("No goldeneye user file found at ", path)
+
+  local <- upgrade_user(readRDS(path), path)
+
+  goldfinger_env$localuser <- gy_check(local)
+  ## TODO: implement multiple groups
+  goldfinger_env$group <- names(local$admin_ed)[1]
+  goldfinger_env$user <- local$user
+
+  invisible(local)
+}
+
+#' @rdname gy_check
+#' @export
+gy_check <- function(local=NULL, silent=FALSE){
+
+  # Take the first group if there are multiple:
+  group <- names(local[["admin_ed"]][1])
+  ## TODO: allow switching between groups
+
+  ## Check naming is OK:
+  if(!identical(hash(serialize(names(local), NULL)), as.raw(c(0x4a, 0x5e, 0x00, 0x0d, 0x15, 0x5f, 0xe4, 0x61, 0x52, 0x10, 0x1a, 0xb3, 0xe8, 0x64, 0x64, 0x0f, 0xac, 0x5c, 0x83, 0xaf, 0x47, 0xb5, 0x3a, 0xf0, 0x29, 0x21, 0xfc, 0xaa, 0x0d, 0xa0, 0x52, 0xef)))){
+    stop("An unexpected error occured while processing the user file - please contact the package author", call.=FALSE)
+  }
 
   ## Check that the symmetric encryption key can be found:
-  pass <- tryCatch(
-    key_get("goldfinger", username=local$user),
-    error=function(e){
-      tryCatch(key_delete("goldfinger", username=local$user), error=function(e) { })
-      pass <- getPass(msg="Password:  ")
-      # Check the password works:
-      sym_key <- key_sodium(sha256(charToRaw(str_c(local$salt,pass))))
-      private_key <- decrypt_object(local$private_encr, sym_key)
-      key_set_with_value("goldfinger", local$user, pass)
-      return(pass)
-    }
-  )
+  pass <- get_password(str_c(group, ":", local$user))
+  sym_key <- hash(charToRaw(str_c(local$salt,pass)))
 
-  sym_key <- key_sodium(sha256(charToRaw(str_c(local$salt,pass))))
-  private_key <- decrypt_object(local$private_encr, sym_key)
-  public_key <- local$public_key
+  private_curve <- data_decrypt(local$encr_curve, sym_key)
+  public_curve <- local$public_curve
+  public_test <- pubkey(private_curve)
+  if(!identical(public_curve, public_test)) stop("Something went wrong: the public curve key cannot be regenerated", call.=FALSE)
 
-  ## Validate with the public key:
-  public_test <- pubkey(private_key)
-  if(!identical(public_key, public_test)) stop("Something went wrong: the public key cannot be regenerated", call.=FALSE)
+  private_ed <- data_decrypt(local$encr_ed, sym_key)
+  public_ed <- local$public_ed
+  public_test <- sig_pubkey(private_ed)
+  if(!identical(public_ed, public_test)) stop("Something went wrong: the public curve key cannot be regenerated", call.=FALSE)
 
-  if(!silent) cat("goldfinger setup verified\n")
-
-  goldfinger_env$localcache <- local
   invisible(local)
-
 }

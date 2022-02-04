@@ -4,8 +4,6 @@
 #' @param silent
 #'
 
-#' @rdname gf_utilities
-#' @export
 gf_check <- function(path = getOption('goldfinger_path'), silent=FALSE){
 
   if(is.null(path)) stop("Path to the goldfinger.gfu file not found: set options(goldfinger_path='...') and try again", call.=FALSE)
@@ -43,8 +41,6 @@ gf_check <- function(path = getOption('goldfinger_path'), silent=FALSE){
 
 }
 
-#' @rdname gf_utilities
-#' @export
 gf_users <- function(fallback=TRUE, refresh=FALSE){
 
   ## Get all info:
@@ -159,13 +155,13 @@ gf_all_keys <- function(refresh=FALSE, all_users=FALSE, fallback=TRUE, local=FAL
 goldfinger_env <- new.env()
 ## TODO: retrieve version automatically
 goldfinger_env$version <- "0.3.0-0"
-goldfinger_env$local_user <- list()
+goldfinger_env$localuser <- NULL
 goldfinger_env$webcache <- list()
 goldfinger_env$group <- ""
+goldfinger_env$user <- ""
 
 # No longer needed:
 goldfinger_env$live_data <- FALSE
-goldfinger_env$localcache <- NULL
 users_sigkey <- as.raw(c(0x02, 0x18, 0x05, 0x6e, 0x4c, 0x28, 0x07, 0xd8, 0x67,
         0x27, 0x7f, 0x0f, 0x77, 0xe5, 0x3a, 0x5a, 0x3e, 0x12, 0xb9, 0x9e,
         0x02, 0x0d, 0x3b, 0xea, 0x5b, 0x0a, 0xdc, 0xfc, 0x8b, 0x9b, 0x70,

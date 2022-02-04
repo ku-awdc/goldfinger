@@ -2,9 +2,12 @@
 % Please edit documentation in R/gy_check.R
 \name{gy_check}
 \alias{gy_check}
+\alias{gy_userfile}
 \title{Utilities for goldfinger encryption}
 \usage{
-gy_check(path = getOption("goldfinger_path"), silent = FALSE)
+gy_userfile(path = getOption("goldeneye_path"), silent = FALSE)
+
+gy_check(local = NULL, silent = FALSE)
 }
 \arguments{
 \item{silent}{}

@@ -1,13 +1,4 @@
-#' Title
-#'
-#' @importFrom stringr str_remove str_c
-#' @importFrom getPass getPass
-#' @importFrom keyring key_set_with_value key_get key_list key_delete
-#' @importFrom sodium sha256 keygen pubkey data_encrypt data_decrypt
-#' @importFrom cyphr key_sodium keypair_sodium encrypt_object decrypt_object
-#' @importFrom rstudioapi selectDirectory isAvailable
-#'
-#' @export
+# Old function - no longer needed!
 gf_setup <- function(){
 
   ## May want to modify this:
@@ -106,10 +97,5 @@ gf_setup <- function(){
   cat("We're done: please send the following file to Matt:\n'", str_c(getwd(), "/goldfinger_", user, ".gfp"), "'\n", sep="")
 
   ## TODO: query online database to make sure this user does not already exist
-
-}
-
-#' @export
-gf_upgrade <- function(){
 
 }
