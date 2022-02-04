@@ -37,3 +37,11 @@ keys <- list(group="goldfinger", package_version=goldfinger:::goldfinger_env$ver
 
 saveRDS(keys, "goldfinger.gyu", compress=FALSE)
 
+stop()
+
+
+gtp <- readRDS("/Users/matthewdenwood/Documents/Resources/Goldeneye/goldfinger/goldfinger_test_public.gyp")
+gtp
+
+library(sodium)
+unserialize(data_decrypt(gtp, hash(charToRaw(pwd))))
