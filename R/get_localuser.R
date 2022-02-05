@@ -14,6 +14,8 @@ get_localuser <- function(){
 # This function only gets called to set up a new user for a group:
 refresh_users <- function(weblink, setup=FALSE, silent=FALSE){
 
+  browser()
+
   stopifnot(is.character(weblink), length(weblink)==1, !is.na(weblink))
   if(!str_detect(weblink, "#")) stop("Invalid setup link provided (no #)", call.=FALSE)
   if(!str_detect(weblink, "^https://")) stop("Invalid setup link provided (not a URL)", call.=FALSE)
