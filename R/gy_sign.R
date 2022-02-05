@@ -54,8 +54,12 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
 
   if(!is.raw(signature)) stop("The provided signature must be of type raw", call.=FALSE)
 
+<<<<<<< Updated upstream
   browser()
 
+=======
+  original <- object
+>>>>>>> Stashed changes
 
   ## Serialise/hash the object:
   sopts <- c("hash", serialization_options[serialization_options!="custom"], "none")
@@ -78,7 +82,7 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
   }
 
   ## Verify:
-  save(object, signature, public_ed, file="debug_file_for_matt.rda")
+  # save(original, object, signature, public_ed, file="debug_file_for_matt.rda")
   ok <- try(sig_verify(object, signature, public_ed))
 
   if(inherits(ok, "try-error")) ok <- FALSE
