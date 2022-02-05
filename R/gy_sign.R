@@ -54,6 +54,9 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
 
   if(!is.raw(signature)) stop("The provided signature must be of type raw", call.=FALSE)
 
+  browser()
+
+
   ## Serialise/hash the object:
   sopts <- c("hash", serialization_options[serialization_options!="custom"], "none")
   mtch <- pmatch(attr(signature, "ser_method", exact=TRUE), sopts)
@@ -62,7 +65,7 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
   if(method %in% serialization_options){
     object <- gy_serialise(object, method=method)
   }else if(method=="hash"){
-    object <- hash(serialize(object, NULL))
+    object <- sodium::hash(serialize(object, NULL))
   }else if(method=="none"){
     if(!is.raw(object)) stop("The object must be type raw for method=none", call.=FALSE)
   }else{
