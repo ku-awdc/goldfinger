@@ -19,9 +19,10 @@ gy_sign <- function(object, method="hash"){
   if(is.na(mtch)) stop(str_c("Unrecognised serialisation method '", method, "' - options are: ", str_c(sopts, collapse=", ")))
   method <- sopts[mtch]
   if(method %in% serialization_options){
+    if(method=="base") warning("Serialisation using base::serialize is not recommended for signing", call.=FALSE)
     object <- gy_serialise(object, method=method)
   }else if(method=="hash"){
-    object <- hash(serialize(object, NULL))
+    object <- hash(qserialize(object, preset="uncompressed"))
   }else if(method=="none"){
     if(!is.raw(object)) stop("The object must be type raw for method=none", call.=FALSE)
   }else{
@@ -54,13 +55,6 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
 
   if(!is.raw(signature)) stop("The provided signature must be of type raw", call.=FALSE)
 
-<<<<<<< Updated upstream
-  browser()
-
-=======
-  original <- object
->>>>>>> Stashed changes
-
   ## Serialise/hash the object:
   sopts <- c("hash", serialization_options[serialization_options!="custom"], "none")
   mtch <- pmatch(attr(signature, "ser_method", exact=TRUE), sopts)
@@ -69,7 +63,7 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
   if(method %in% serialization_options){
     object <- gy_serialise(object, method=method)
   }else if(method=="hash"){
-    object <- sodium::hash(serialize(object, NULL))
+    object <- hash(qserialize(object, preset="uncompressed"))
   }else if(method=="none"){
     if(!is.raw(object)) stop("The object must be type raw for method=none", call.=FALSE)
   }else{
@@ -82,7 +76,7 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
   }
 
   ## Verify:
-  # save(original, object, signature, public_ed, file="debug_file_for_matt.rda")
+  # save(original, object, signature, public_ed, file="debug_file.rda")
   ok <- try(sig_verify(object, signature, public_ed))
 
   if(inherits(ok, "try-error")) ok <- FALSE
