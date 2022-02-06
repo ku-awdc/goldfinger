@@ -33,8 +33,9 @@ gy_serialise <- function(object, method="base", ...){
     stop("Serialisation method '", method, "' is not yet implemented - perhaps update the package?", call.=FALSE)
   }
 
-  ## Add the serialization method as an attribute:
+  ## Add the serialization method and versions as attributes:
   attr(rv, "ser_method") <- method
+  attr(rv, "versions") <- get_versions(type="deserialise")
 
   return(rv)
 }
@@ -51,6 +52,10 @@ gy_deserialise <- function(object, ...){
     warning("The provided object did not have a serialization method attribute - assuming that this is base::serialize")
     method <- "base"
   }
+
+  versions <- attr(object, "versions", exact=TRUE)
+  if(is.null(versions)) stop("The versions attribute is missing")
+  check_version(versions)
 
   if(!is.character(method) || length(method)!=1 || is.na(method)) stop("The serialisation method attribute must be a length 1 character", call.=FALSE)
   if(method=="serialise") method <- "serialize"

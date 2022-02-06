@@ -19,6 +19,10 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
   if(is.null(ser_method)){
     ser_method <- "custom"
   }
+  ser_versions <- attr(object, "versions", exact=TRUE)
+  if(is.null(ser_versions)){
+    ser_versions <- get_versions(type="deserialise")
+  }
 
   localuser <- get_localuser()
   keys <- get_users(all_users=length(user)>0)
@@ -41,14 +45,10 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
   }
 
   ## Get private and public keys for this user:
-  pass <- get_password(username=localuser$keyringuser)
-  pass_key <- hash(charToRaw(str_c(localuser$salt,pass)))
-  private_key <- data_decrypt(localuser$encr_curve, pass_key)
+  private_key <- get_gykey(localuser$group, localuser$user, localuser$salt, localuser$encr_curve)
   public_key <- localuser$public_curve
-
-  ## Validate with the public key:
   public_test <- pubkey(private_key)
-  if(!identical(public_key, public_test)) stop("Something went wrong: the public key cannot be regenerated", call.=FALSE)
+  if(!identical(public_key, public_test)) stop("Something went wrong: the public curve key cannot be regenerated", call.=FALSE)
 
   ## Generate a symmetric encryption key:
   sym_key <- keygen()
@@ -64,8 +64,7 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
   ## TODO: more types, and make run_custom=FALSE default
   if(type=="identity"){
     # Nothing to do here:
-    encr_fun <- function(x) x
-    decr_fun <- function(x) x
+    funs <- serialize(sym_key, NULL)
   }else if(type=="custom"){
     if(!all(c("encr_fun","decr_fun") %in% names(funs))) stop("For custom funs you must supply both encr_fun and decr_fun")
     encr_fun <- funs$encr_fun
@@ -77,9 +76,11 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
   }
 
   ## Check encr_fun and decr_fun are symmetric:
-  funs$.x <- encr_fun(sym_key)
-  if(!identical(sym_key, decr_fun(funs[[".x"]]))) stop("The provided encr_fun and decr_fun are not symmetric", call.=FALSE)
-  funs <- serialize(funs, NULL)
+  if(type!="identity"){
+    funs$.x <- encr_fun(sym_key)
+    if(!identical(sym_key, decr_fun(funs[[".x"]]))) stop("The provided encr_fun and decr_fun are not symmetric", call.=FALSE)
+    funs <- serialize(funs, NULL)
+  }
 
   ## Encrypt this for each user:
   decrypt_key <- lapply(user, function(u){
@@ -105,9 +106,11 @@ gy_encrypt <- function(object, user=character(0), local_user=TRUE, comment = "",
   object_encr <- data_encrypt(object, sym_key)
   # Add the serialization method as an attribute:
   attr(object_encr, "ser_method") <- ser_method
+  # Add the serialization versions as an attribute:
+  attr(object_encr, "versions") <- ser_versions
 
   ## Package the metadata:
-  metadata <- list(user=localuser$user, public_curve=localuser$public_curve, comment=comment, minimum_version="0.3.0", package_version=goldfinger_env$version, date_time=Sys.time())
+  metadata <- list(user=localuser$user, public_curve=localuser$public_curve, comment=comment, versions=get_versions(type="decrypt"), date_time=Sys.time())
 
   ## And return:
   retval <- list(group="goldfinger", metadata=metadata, decrypt=decrypt_key, object_encr=object_encr)
@@ -123,20 +126,19 @@ gy_decrypt <- function(object, run_custom = TRUE){
 
   ## See if we are dealing with an old save format, and if so then upgrade:
   object <- upgrade_encrypt(object)
+  versions <- object$metadata$versions
+  if(is.null(versions)) stop("The versions element is missing")
+  check_version(versions)
 
   ## Determine the local user:
   localuser <- get_localuser()
   keys <- get_users(all_users = object$metadata$user != localuser$user)
 
   ## Get private and public keys for this user:
-  pass <- get_password(localuser$keyringuser)
-  pass_key <- hash(charToRaw(str_c(localuser$salt,pass)))
-  private_key <- data_decrypt(localuser$encr_curve, pass_key)
+  private_key <- get_gykey(localuser$group, localuser$user, localuser$salt, localuser$encr_curve)
   public_key <- localuser$public_curve
-
-  ## Validate with the public key:
   public_test <- pubkey(private_key)
-  if(!identical(public_key, public_test)) stop("Something went wrong: the public key cannot be regenerated", call.=FALSE)
+  if(!identical(public_key, public_test)) stop("Something went wrong: the public curve key cannot be regenerated", call.=FALSE)
 
   ## Find the relevant decrypt key:
   if(! localuser$user %in% names(object$decrypt)){
@@ -158,6 +160,9 @@ gy_decrypt <- function(object, run_custom = TRUE){
     warning("The provided object did not have a serialization method attribute - assuming that this is base::serialize")
     ser_method <- "base"
   }
+  versions <- attr(object$object_encr, "versions", exact=TRUE)
+  if(is.null(versions)) stop("The versions attribute is missing")
+  check_version(versions)
 
   crypt <- object$decrypt[[localuser$user]]
   uncrypt <- unserialize(auth_decrypt(crypt, private_key, object$metadata$public_curve))
@@ -166,12 +171,16 @@ gy_decrypt <- function(object, run_custom = TRUE){
 
   # Unserialise:
   funs <- unserialize(uncrypt$key_rand[uncrypt$reorder])
-  stopifnot("type" %in% names(funs))
-  type <- funs[["type"]]
+  if(is.raw(funs)){
+    type <- "identity"
+  }else{
+    stopifnot("type" %in% names(funs))
+    type <- funs[["type"]]
+  }
 
   if(type=="identity"){
     # If the key is just a key:
-    sym_key <- funs[[".x"]]
+    sym_key <- funs
   }else if(type=="custom"){
     stopifnot("decr_fun" %in% names(funs))
 
@@ -185,10 +194,12 @@ gy_decrypt <- function(object, run_custom = TRUE){
     stop("The decryption key/function is invalid", call.=FALSE)
   }
 
-  # Add ser_method
+  # Decrypt:
   object <- data_decrypt(object$object_encr, sym_key)
 
+  # Add ser_method and versions:
   attr(object, "ser_method") <- ser_method
+  attr(object, "versions") <- versions
 
   return(object)
 

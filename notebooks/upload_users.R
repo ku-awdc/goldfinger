@@ -30,6 +30,7 @@ user_info <- lapply(user_info, function(x) x[!names(x)%in%c("public_key","public
 
 users <- list(usernames=usernames, user_info=data_encrypt(serialize(user_info, NULL), hash(charToRaw(pwd))), public_curve=public_curve, public_ed=public_ed)
 verification <- gy_sign(users)
+stop("Change verification versions attr so that type is 'generic'")
 stopifnot(gy_verify(users, verification, silent=TRUE))
 attr(verification, "user") <- NULL
 

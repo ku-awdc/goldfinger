@@ -28,6 +28,8 @@ gy_userfile <- function(path = getOption('goldeneye_path'), silent=FALSE){
 #' @export
 gy_check <- function(local=NULL, silent=FALSE){
 
+  if(is.null(local)) stop("FIXME")
+
   # Take the first group if there are multiple:
   group <- names(local[["admin_ed"]][1])
   ## TODO: allow switching between groups
@@ -37,19 +39,17 @@ gy_check <- function(local=NULL, silent=FALSE){
     stop("An unexpected error occured while processing the user file - please contact the package author", call.=FALSE)
   }
 
-  ## Check that the symmetric encryption key can be found:
-  pass <- get_password(str_c(group, ":", local$user))
-  sym_key <- hash(charToRaw(str_c(local$salt,pass)))
-
-  private_curve <- data_decrypt(local$encr_curve, sym_key)
+  ## Obtain the private curve key:
+  private_curve <- get_gykey(group, local$user, local$salt, local$encr_curve)
   public_curve <- local$public_curve
   public_test <- pubkey(private_curve)
   if(!identical(public_curve, public_test)) stop("Something went wrong: the public curve key cannot be regenerated", call.=FALSE)
 
-  private_ed <- data_decrypt(local$encr_ed, sym_key)
+  ## Obtain the private ed key:
+  private_ed <- get_gykey(group, local$user, local$salt, local$encr_ed)
   public_ed <- local$public_ed
   public_test <- sig_pubkey(private_ed)
-  if(!identical(public_ed, public_test)) stop("Something went wrong: the public curve key cannot be regenerated", call.=FALSE)
+  if(!identical(public_ed, public_test)) stop("Something went wrong: the public ed key cannot be regenerated", call.=FALSE)
 
   invisible(local)
 }

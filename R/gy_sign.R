@@ -31,19 +31,16 @@ gy_sign <- function(object, method="hash"){
 
   ## Get private and public keys for this user:
   local <- get_localuser()
-  pass <- get_password(local$keyringuser)
-  pass_key <- hash(charToRaw(str_c(local$salt,pass)))
-  private_ed <- data_decrypt(local$encr_ed, pass_key)
+  private_ed <- get_gykey(local$group, local$user, local$salt, local$encr_ed)
   public_ed <- local$public_ed
-
-  ## Validate with the public key:
   public_test <- sig_pubkey(private_ed)
-  if(!identical(public_ed, public_test)) stop("Something went wrong: the public key cannot be regenerated", call.=FALSE)
+  if(!identical(public_ed, public_test)) stop("Something went wrong: the public ed key cannot be regenerated", call.=FALSE)
 
   ## Sign the object:
   signature <- sig_sign(object, private_ed)
   attr(signature, "user") <- str_c(local$group, ":", local$user)
   attr(signature, "ser_method") <- method
+  attr(signature, "versions") <- get_versions(type="verify")
 
   return(signature)
 }
@@ -54,6 +51,10 @@ gy_sign <- function(object, method="hash"){
 gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
 
   if(!is.raw(signature)) stop("The provided signature must be of type raw", call.=FALSE)
+
+  versions <- attr(signature, "versions", exact=TRUE)
+  if(is.null(versions)) stop("The versions attribute is missing")
+  check_version(versions)
 
   ## Serialise/hash the object:
   sopts <- c("hash", serialization_options[serialization_options!="custom"], "none")

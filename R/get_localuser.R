@@ -5,7 +5,6 @@ get_localuser <- function(){
   ## TODO: implement different groups
   local <- goldfinger_env$localuser
   local$group <- "goldfinger"
-  local$keyringuser <- str_c(local$group, ":", local$user)
 
   return(local)
 }
@@ -27,8 +26,7 @@ refresh_users <- function(weblink, setup=FALSE, silent=FALSE){
   on.exit(unlink(file.path(tmpfl, "users.gyu")))
 
   info <- readRDS(file.path(tmpfl, "users.gyu"))
-
-  check_version(info$minimum_version, info$package_version, info$date_time)
+  check_version(info)
 
   public_ed <- info[["users"]][["public_ed"]]
   public_curve <- info[["users"]][["public_curve"]]
@@ -86,10 +84,42 @@ get_users <- function(all_users=FALSE, group=goldfinger_env$group, refresh=FALSE
   return(goldfinger_env$webcache[[group]])
 }
 
-check_version <- function(minimum_version, package_version, date_time){
+check_version <- function(versions, local_versions=get_versions()){
 
-  ## TODO: implement
+  stopifnot(is.character(versions))
+  stopifnot(all(c("type","date_time","minimum","actual","sodium","qs","rcpp","R") %in% names(versions)))
+  stopifnot(versions["type"] %in% c("generic","decrypt","verify","deserialise"))
 
+  if(numeric_version(versions["minimum"]) > numeric_version(local_versions["actual"])){
+    type <- versions["type"]
+    if(type=="decrypt"){
+      msg <- "Decrypting this file requires an update of "
+    }else if(type=="verify"){
+      msg <- "Verification of this file requires an update of "
+    }else if(type=="deserialise"){
+      msg <- "Deserialisation of this file requires an update of "
+    }else{
+      if(!type=="generic"){
+        warning("Unrecognised type in version check")
+      }
+      # NB: this includes downloading the users profile
+      msg <- "You need to update "
+    }
+    cat("ERROR:  ", msg, "the goldfinger package (you have version ", local_versions["actual"], " but version ", versions["minimum"], " or later is required). To update the package run the following code:\n\ninstall.packages('goldfinger', repos=c('https://cran.rstudio.com/', 'https://ku-awdc.github.io/drat/'))", sep="")
+
+    stop("Package update required", call.=FALSE)
+  }
+
+  invisible(TRUE)
+
+}
+
+get_versions <- function(...){
+  retval <- c(package_env$versions, date_time=as.character(Sys.time()), ...)
+  if(!"minimum" %in% names(retval)) retval <- c(retval, minimum="0.4.0-0")
+  if(!"type" %in% names(retval)) retval <- c(retval, type="generic")
+  check_version(retval, local_versions=retval)
+  return(retval)
 }
 
 
@@ -104,14 +134,23 @@ get_public_key <- function(user, type="curve", weblink=NULL){
 
 
 
-get_password <- function(username){
+get_gykey <- function(group, user, salt, key_encr){
+
+  ## TODO: allow use of environmental passwords for testing purposes?
+
+  ## TODO: limit the number of times this can fail using an env
+  decrfun <- function(pass){
+    pass_key <- hash(charToRaw(str_c(salt,pass)))
+    data_decrypt(key_encr, pass_key)
+  }
+
+  username <- paste0(group, ":", user)
   tryCatch(
-    key_get("goldeneye", username=username),
+    decrfun(key_get("goldeneye", username=username)),
     error=function(e){
       tryCatch(key_delete("goldeneye", username=username), error=function(e) { })
-      pass <- getPass(msg="Password:  ")
-      key_set_with_value("goldeneye", username, pass)
-      return(pass)
+      key_set_with_value("goldeneye", username, getPass(msg="Password:  "))
+      decrfun(pass)
     }
   )
 }

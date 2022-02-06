@@ -1,3 +1,8 @@
+## Test signing
+x <- as.raw(1:10)
+ss <- gy_sign(x)
+gy_verify(x, ss)
+
 ## Test serialize and unserialize methods
 
 x <- tibble(x1=rnorm(50), x2=x1*10)
