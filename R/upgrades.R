@@ -1,7 +1,7 @@
 upgrade_user <- function(local, path){
 
   # Major change from version <=2 to version 3:
-  if(numeric_version(local[["version"]]) < 0.3){
+  if("version" %in% names(local) && numeric_version(local[["version"]]) < 0.3){
 
     if(!local$user %in% c("md","mossa","makg")){
       stop("The upgrade function is not configured for you - please contact Matt for help", call.=FALSE)
@@ -86,10 +86,9 @@ upgrade_user <- function(local, path){
 
     ## Create the storage file:
     group <- keys[["group"]]
-    version <- goldfinger_env[["version"]]
-    date_time <- Sys.time()
+    versions <- get_versions(type="generic")
 
-    public_save <- list(user=user, name=name, email=email, version=version, date_time=date_time, public_curve=public_curve, public_ed=public_ed)
+    public_save <- list(user=user, name=name, email=email, versions=versions, public_curve=public_curve, public_ed=public_ed)
 
     # Allow a single profile file to contain multiple groups (assuming that username and key are the same, so just the admin key differs):
     admin_ed <- list(keys[["admin_ed"]])

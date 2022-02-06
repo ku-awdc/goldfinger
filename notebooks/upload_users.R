@@ -1,13 +1,14 @@
 ## TODO: cleanup and make into function
 
+library(sodium)
+library(cyphr)
+library(goldfinger)
+
 # Users and pwd must already be available
 user_info <- goldfinger:::gf_all_keys(TRUE, TRUE)
 user_info <- user_info[!names(user_info)=="local_user"]
 pwd
 
-library(sodium)
-library(cyphr)
-library(goldfinger)
 
 # TODO: back to working on new user setup...
 
@@ -29,12 +30,18 @@ stopifnot(identical(readRDS('~/Documents/Personal/goldfinger_md.gyp')$public_cur
 user_info <- lapply(user_info, function(x) x[!names(x)%in%c("public_key","public_ed","public_curve")])
 
 users <- list(usernames=usernames, user_info=data_encrypt(serialize(user_info, NULL), hash(charToRaw(pwd))), public_curve=public_curve, public_ed=public_ed)
+
 verification <- gy_sign(users)
-stop("Change verification versions attr so that type is 'generic'")
+
+# Note: this is used for checking the download and the verification separately:
+versions <- attr(verification, "versions")
+versions["type"] <- "generic"
+#versions["minimum"] <- "0.4.0-1"
+attr(verification, "versions") <- versions
 stopifnot(gy_verify(users, verification, silent=TRUE))
 attr(verification, "user") <- NULL
 
-keys <- list(group="goldfinger", package_version=goldfinger:::goldfinger_env$version, minimum_version="0.3.0", date_time = Sys.time(), users=users, verification=verification)
+keys <- list(group="goldfinger", users=users, verification=verification)
 
 saveRDS(keys, "goldfinger.gyu", compress=FALSE)
 

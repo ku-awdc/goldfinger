@@ -13,9 +13,16 @@
 #'
 #' @rdname gy_serialise
 #' @export
-gy_serialise <- function(object, method="base", ...){
+gy_serialise <- function(object, files=character(0), method="base", ...){
 
   if(!is.character(method) || length(method)!=1 || is.na(method)) stop("The serialisation method argument must be a length 1 character", call.=FALSE)
+
+  if(any(names(object)=="serialised_files")){
+    stop("The name 'serialised_files' is reserved - please rename this element of the object list", call.=FALSE)
+  }
+
+  ## TODO: files
+  if(length(files)>0) stop("Serialising files is not yet implemented")
 
   mtch <- pmatch(method, serialization_options)
   if(is.na(mtch)) stop(str_c("Unrecognised serialisation method argument '", method, "' - options are: ", str_c(serialization_options, collapse=", ")))
@@ -43,7 +50,7 @@ gy_serialise <- function(object, method="base", ...){
 
 #' @rdname gy_serialise
 #' @export
-gy_deserialise <- function(object, ...){
+gy_deserialise <- function(object, files=TRUE, ...){
 
   if(!is.raw(object)) stop("The provided object must be of type raw", call.=FALSE)
 

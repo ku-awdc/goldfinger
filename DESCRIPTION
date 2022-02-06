@@ -1,7 +1,7 @@
 Package: goldfinger
 Title: Support Package for GOLDFINGER
 Date: 2022-02-06
-Version: 0.4.0-0
+Version: 0.4.0-1
 Authors@R: 
     c(
     person(given = "Matt",
@@ -28,11 +28,13 @@ Imports:
     base64enc,
     keyring,
     getPass,
-    sodium,
+    sodium (>= 1.1),
+    Rcpp (>= 1.0.8),
+    qs (>= 0.25),
     cyphr,
-    stringr,
-    qs
+    stringr
 Depends:
+    R (>= 3.5.0),
     tidyverse
 Suggests: 
     knitr,

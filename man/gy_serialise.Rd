@@ -8,13 +8,13 @@
 \alias{gy_sign}
 \title{Serialise and deserialise a list of objects/files}
 \usage{
-gy_serialise(object, method = "base", ...)
+gy_serialise(object, files = character(0), method = "base", ...)
 
-gy_deserialise(object, ...)
+gy_deserialise(object, files = TRUE, ...)
 
-gy_serialize(object, method = "base", ...)
+gy_serialize(object, files = character(0), method = "base", ...)
 
-gy_deserialize(object, ...)
+gy_deserialize(object, files = TRUE, ...)
 
 gy_sign(object, method = "hash")
 }

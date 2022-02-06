@@ -35,7 +35,9 @@ gy_check <- function(local=NULL, silent=FALSE){
   ## TODO: allow switching between groups
 
   ## Check naming is OK:
-  if(!identical(hash(serialize(names(local), NULL)), as.raw(c(0x4a, 0x5e, 0x00, 0x0d, 0x15, 0x5f, 0xe4, 0x61, 0x52, 0x10, 0x1a, 0xb3, 0xe8, 0x64, 0x64, 0x0f, 0xac, 0x5c, 0x83, 0xaf, 0x47, 0xb5, 0x3a, 0xf0, 0x29, 0x21, 0xfc, 0xaa, 0x0d, 0xa0, 0x52, 0xef)))){
+  lcn <- names(local)
+  epn <- c("user", "name", "email", "versions", "public_curve", "public_ed", "salt", "encr_curve", "encr_ed", "admin_ed", "weblink")
+  if(length(lcn)!=length(epn) || !all(epn %in% lcn)){
     stop("An unexpected error occured while processing the user file - please contact the package author", call.=FALSE)
   }
 

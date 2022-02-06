@@ -98,10 +98,9 @@ gy_setup <- function(){
 
   ## Create the storage file:
   group <- keys[["group"]]
-  version <- goldfinger_env[["version"]]
-  date_time <- Sys.time()
+  versions <- get_versions(type="generic")
 
-  public_save <- list(user=user, name=name, email=email, version=version, date_time=date_time, public_curve=public_curve, public_ed=public_ed)
+  public_save <- list(user=user, name=name, email=email, versions=versions, public_curve=public_curve, public_ed=public_ed)
 
   # Allow a single profile file to contain multiple groups (assuming that username and key are the same, so just the admin key differs):
   admin_ed <- list(keys[["admin_ed"]])

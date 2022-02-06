@@ -26,7 +26,7 @@ refresh_users <- function(weblink, setup=FALSE, silent=FALSE){
   on.exit(unlink(file.path(tmpfl, "users.gyu")))
 
   info <- readRDS(file.path(tmpfl, "users.gyu"))
-  check_version(info)
+  check_version(attr(info$verification, "versions", exact = TRUE))
 
   public_ed <- info[["users"]][["public_ed"]]
   public_curve <- info[["users"]][["public_curve"]]
