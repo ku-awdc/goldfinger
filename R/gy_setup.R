@@ -164,9 +164,9 @@ gy_setup <- function(weblink=NULL, name=NULL, email=NULL, user=NULL, filename=NU
     public_encry <- data_encrypt(serialize(public_save, NULL), hash(charToRaw(keys$webpwd)))
 
     pfilen <- str_c("gy_", user, "_public.gyp")
-    saveRDS(public_encry, file=pfilen, compress=FALSE)
+    saveRDS(public_encry, file=file.path(path, pfilen), compress=FALSE)
 
-    cat("Account creation complete: please send the following file to the group admin:  '", pfilen, "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
+    cat("Account creation complete: please send the following file to the group admin:\n    '", file.path(path, pfilen), "'\n[Make sure you send the 'public' file and not the 'private' file!!!]\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
   }
 
 

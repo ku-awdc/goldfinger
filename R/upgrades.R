@@ -113,7 +113,7 @@ upgrade_user <- function(local, path){
     pfilen <- str_c("gy_", user, "_public.gyp")
     saveRDS(public_encry, file=pfilen, compress=FALSE)
 
-    cat("Please send the following file to Matt:  '", pfilen, "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
+    cat("Please send the following file to Matt:  '", file.path(getwd(), pfilen), "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
 
     cat("#### Upgrade complete ####\n")
 
