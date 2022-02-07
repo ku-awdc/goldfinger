@@ -107,7 +107,7 @@ check_version <- function(versions, local_versions=get_versions()){
       # NB: this includes downloading the users profile
       msg <- "You need to update "
     }
-    cat("ERROR:  ", msg, "the goldfinger package (you have version ", local_versions["actual"], " but version ", versions["minimum"], " or later is required). To update the package run the following code:\n\ninstall.packages('goldfinger', repos=c('https://cran.rstudio.com/', 'https://ku-awdc.github.io/drat/'))", sep="")
+    cat("ERROR:  ", msg, "the goldfinger package (you have version ", local_versions["actual"], " but version ", versions["minimum"], " or later is required). To update the package run the following code:\n\ninstall.packages('goldfinger', repos=c('https://cran.rstudio.com/', 'https://ku-awdc.github.io/drat/'))\n", sep="")
 
     stop("Package update required", call.=FALSE)
   }
