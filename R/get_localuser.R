@@ -1,43 +1,46 @@
 get_localuser <- function(){
+  if(is.null(package_env$currentlocal)) gy_userfile()
 
-  if(is.null(goldfinger_env$localuser)) gy_userfile()
-
-  ## TODO: implement different groups
-  local <- goldfinger_env$localuser
-  local$group <- "goldfinger"
+  local <- package_env$currentlocal
+  local$group <- package_env$currentgroup
 
   return(local)
 }
 
 
 # This function only gets called to set up a new user for a group:
-refresh_users <- function(weblink, setup=FALSE, silent=FALSE){
+refresh_users <- function(weblink, admin_ed=NULL, setup=FALSE, silent=FALSE){
 
   stopifnot(is.character(weblink), length(weblink)==1, !is.na(weblink))
   if(!str_detect(weblink, "#")) stop("Invalid setup link provided (no #)", call.=FALSE)
-  if(!str_detect(weblink, "^https://")) stop("Invalid setup link provided (not a URL)", call.=FALSE)
+  if(!str_detect(weblink, "^https://") && !str_detect(weblink, "^file:///")) stop("Invalid setup link provided (not a URL)", call.=FALSE)
 
   weblink <- str_split(weblink, "#")[[1]]
   if(!length(weblink)==3) stop("Invalid setup link provided (cannot split twice on #)", call.=FALSE)
 
   if(!silent) cat("Downloading user list...\n")
-  tmpfl <- tempdir(check=TRUE)
-  download.file(weblink[1], file.path(tmpfl, "users.gyu"), quiet=TRUE, mode="wb")
-  on.exit(unlink(file.path(tmpfl, "users.gyu")))
 
-  info <- readRDS(file.path(tmpfl, "users.gyu"))
+  if(str_detect(weblink[1], "^https://")){
+    ## TODO: use a url connection instead??
+    tmpfl <- tempdir(check=TRUE)
+    download.file(weblink[1], file.path(tmpfl, "users.gyu"), quiet=TRUE, mode="wb")
+    on.exit(unlink(file.path(tmpfl, "users.gyu")))
+    info <- readRDS(file.path(tmpfl, "users.gyu"))
+  }else{
+    con <- file(weblink[1], open="rb")
+    info <- readRDS(con)
+    close(con)
+  }
+
   check_version(attr(info$verification, "versions", exact = TRUE))
 
   public_ed <- info[["users"]][["public_ed"]]
   public_curve <- info[["users"]][["public_curve"]]
 
   if(setup){
-    ## Save the administrators public ed key:
+    ## If this is a setup run then save the administrators public ed key:
     if(!weblink[3] %in% names(public_ed)) stop("Invalid admin username", call.=FALSE)
     admin_ed <- public_ed[[weblink[3]]]
-  }else{
-    ## Otherwise use the pre-saved admin_ed
-    admin_ed <- get_localuser()[["admin_ed"]][[goldfinger_env$group]]
   }
 
   ## Verify the downloaded user:
@@ -58,17 +61,16 @@ refresh_users <- function(weblink, setup=FALSE, silent=FALSE){
   ## Cache within environment:
   goldfinger_env$webcache[[info$group]] <- users
 
-  keys <- list(users=users, weburl=weblink[1], webpwd=weblink[2], admin_user=weblink[3], admin_ed=admin_ed, group=info$group)
+  keys <- list(users=users, weburl=weblink[1], webpwd=weblink[2], admin_user=weblink[3], admin_ed=admin_ed, group=info$group, usernames=info$users$usernames)
 
   invisible(keys)
 }
 
 # Function called repeatedly in a session:
-get_users <- function(all_users=FALSE, group=goldfinger_env$group, refresh=FALSE){
+get_users <- function(all_users=FALSE, group=package_env$currentgroup, refresh=FALSE){
 
-  if(is.null(goldfinger_env$localuser)) gy_userfile()
-
-  if(group!=goldfinger_env$group) stop("Changing group is not yet implemented")
+  # Load user file if necessary:
+  gy_check()
 
   if(!all_users){
     local <- list(get_localuser()[c("name","email","user","version","date_time","public_curve","public_ed")])
@@ -77,7 +79,7 @@ get_users <- function(all_users=FALSE, group=goldfinger_env$group, refresh=FALSE
   }
 
   if(refresh || is.null(goldfinger_env$webcache[[group]])){
-    refresh_users(get_localuser()[["weblink"]], setup=FALSE, silent=FALSE)
+    refresh_users(get_localuser()[["groups"]][[group]][["weblink"]], get_localuser()[["groups"]][[group]][["admin_ed"]], setup=FALSE, silent=FALSE)
   }
   lapply(goldfinger_env$webcache[[group]], function(x) stopifnot(all(names(x) == c("name","email","user","version","date_time","public_curve","public_ed"))))
 
@@ -126,7 +128,7 @@ get_versions <- function(...){
 get_public_key <- function(user, type="curve", weblink=NULL){
 
   ## TODO: implement
-  # user can be group:admin
+  # user will actually be group:user
 
   get_localuser()$public_ed
 
@@ -137,6 +139,7 @@ get_public_key <- function(user, type="curve", weblink=NULL){
 get_gykey <- function(group, user, salt, key_encr){
 
   ## TODO: allow use of environmental passwords for testing purposes?
+  ## TODO: remove group from the arguments
 
   ## TODO: limit the number of times this can fail using an env
   decrfun <- function(pass){
@@ -144,13 +147,13 @@ get_gykey <- function(group, user, salt, key_encr){
     data_decrypt(key_encr, pass_key)
   }
 
-  username <- paste0(group, ":", user)
+  username <- user #paste0(group, ":", user)
   tryCatch(
     decrfun(key_get("goldeneye", username=username)),
     error=function(e){
       tryCatch(key_delete("goldeneye", username=username), error=function(e) { })
       key_set_with_value("goldeneye", username, getPass(msg="Password:  "))
-      decrfun(pass)
+      decrfun(key_get("goldeneye", username=username))
     }
   )
 }

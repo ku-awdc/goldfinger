@@ -1,3 +1,7 @@
+#fn <- gy_setup(NULL, "test", "test@test.com", "test", "", getwd(), append_Rprofile=FALSE)
+fn <- gy_setup(NA_character_, "test", "test@test.com", "test", "", getwd(), append_Rprofile=FALSE)
+unlink(fn)
+
 ## Test signing
 x <- as.raw(1:10)
 ss <- gy_sign(x)
@@ -50,14 +54,14 @@ rm(x2)
 unlink("test.rdg")
 
 
-gy_userfile('~/Downloads/goldfinger_test.gyp')
+gy_userfile('~/Downloads/gy_test_private.gyp')
 obj1a <- gy_decrypt(enc1)
 
 enc2 <- gy_encrypt(obj2, user="md")
 obj2a <- gy_decrypt(enc2)
 stopifnot(identical(x, gy_deserialise(obj2a)))
 
-gy_userfile('~/Documents/Personal/goldfinger_md.gyp')
+gy_userfile('~/Documents/Personal/gy_md_private.gyp')
 obj2a <- gy_decrypt(enc2)
 stopifnot(identical(x, gy_deserialise(obj2a)))
 

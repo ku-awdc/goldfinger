@@ -15,7 +15,7 @@ gy_save(
   overwrite = FALSE,
   ascii = FALSE,
   funs = list(type = "identity"),
-  method = "base"
+  method = "qs"
 )
 
 gy_load(

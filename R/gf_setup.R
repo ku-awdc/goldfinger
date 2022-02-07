@@ -98,4 +98,5 @@ gf_setup <- function(){
 
   ## TODO: query online database to make sure this user does not already exist
 
+  invisible(file.path(path, filename))
 }

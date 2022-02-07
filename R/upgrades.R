@@ -21,7 +21,7 @@ upgrade_user <- function(local, path){
     pass <- tryCatch(
       key_get("goldfinger", username=local$user),
       error=function(e){
-        tryCatch(key_delete("goldfinger", username=local$user), error=function(e) { })
+        tryCatch(key_delete("goldfinger", username=user), error=function(e) { })
         pass <- getPass(msg="Password:  ")
         # Check the password works:
         sym_key <- cyphr::key_sodium(sodium::sha256(charToRaw(str_c(local$salt,pass))))
@@ -51,7 +51,7 @@ upgrade_user <- function(local, path){
     keys <- refresh_users(weblink, setup=TRUE)
 
     # Store the new password format:
-    key_set_with_value("goldeneye", str_c(keys$group, ":", user), pass)
+    key_set_with_value("goldeneye", user, pass)
     # Convert to symmetric encryption key:
     sym_key <- hash(charToRaw(str_c(salt,pass)), size=32)
 
@@ -84,16 +84,17 @@ upgrade_user <- function(local, path){
     ## Update filename:
     filename <- gsub("\\.gfu$", ".gyp", oldpath)
 
-    ## Create the storage file:
+    # Allow a single profile file to contain multiple groups (assuming that username and key are the same, so just the admin key differs):
     group <- keys[["group"]]
+    allweblinks <- list(default_group=group, gp1=list(weblink=weblink, admin_ed=keys[["admin_ed"]]))
+    names(allweblinks) <- c("default_group", group)
+
+    ## Create the storage file:
     versions <- get_versions(type="generic")
 
     public_save <- list(user=user, name=name, email=email, versions=versions, public_curve=public_curve, public_ed=public_ed)
 
-    # Allow a single profile file to contain multiple groups (assuming that username and key are the same, so just the admin key differs):
-    admin_ed <- list(keys[["admin_ed"]])
-    names(admin_ed) <- group
-    private_save <- c(public_save, list(salt=salt, encr_curve=encr_curve, encr_ed=encr_ed, admin_ed=admin_ed, weblink=weblink))
+    private_save <- c(public_save, list(salt=salt, encr_curve=encr_curve, encr_ed=encr_ed, groups=allweblinks))
     saveRDS(private_save, file=filename, compress=FALSE)
 
     public_save <- c(public_save, list(group=group))
@@ -109,14 +110,14 @@ upgrade_user <- function(local, path){
     ## Create a file to be sent for public registration:
     public_encry <- data_encrypt(serialize(public_save, NULL), hash(charToRaw(keys$webpwd)))
 
-    pfilen <- str_c(keys$group, "_", user, "_public.gyp")
+    pfilen <- str_c("gy_", user, "_public.gyp")
     saveRDS(public_encry, file=pfilen, compress=FALSE)
 
     cat("Please send the following file to Matt:  '", pfilen, "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
 
     cat("#### Upgrade complete ####\n")
 
-    local <- gy_userfile()
+    local <- gy_userfile(filename, silent=TRUE)
   }
 
   return(local)

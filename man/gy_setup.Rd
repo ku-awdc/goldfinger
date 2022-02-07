@@ -4,7 +4,15 @@
 \alias{gy_setup}
 \title{Title}
 \usage{
-gy_setup()
+gy_setup(
+  weblink = NULL,
+  name = NULL,
+  email = NULL,
+  user = NULL,
+  filename = NULL,
+  path = NULL,
+  append_Rprofile = TRUE
+)
 }
 \description{
 Title

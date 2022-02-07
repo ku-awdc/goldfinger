@@ -13,7 +13,7 @@
 
 #' @rdname gy_save
 #' @export
-gy_save <- function(..., list=character(), file=stop("file must be specified (.rdg file extension is recommended)"), user=character(0), local_user=TRUE, comment = "", overwrite=FALSE, ascii = FALSE, funs = list(type="identity"), method="base"){
+gy_save <- function(..., list=character(), file=stop("file must be specified (.rdg file extension is recommended)"), user=character(0), local_user=TRUE, comment = "", overwrite=FALSE, ascii = FALSE, funs = list(type="identity"), method="qs"){
 
   names <- as.character(substitute(list(...)))[-1L]
   if(length(names)==0) stop("No objects passed to be saved", call.=FALSE)

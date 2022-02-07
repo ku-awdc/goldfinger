@@ -7,19 +7,28 @@
 #' @importFrom rstudioapi selectDirectory isAvailable
 #'
 #' @export
-gy_setup <- function(){
+gy_setup <- function(weblink=NULL, name=NULL, email=NULL, user=NULL, filename=NULL, path=NULL, append_Rprofile=TRUE){
 
   cat("#### Setup goldeneye encryption ####\n")
 
-  ## First ask for web link and password for users file
-  weblink <- readline(prompt="Setup link:  ")
-  # Should be in the format https://*link*#*password*#*admin*
-  # Test validity and obtain current user information:
-  keys <- refresh_users(weblink, setup=TRUE)
+  if(is.null(weblink)){
+    ## First ask for web link and password for users file
+    weblink <- readline(prompt="Setup link:  ")
+    # Should be in the format https://*link*#*password*#*admin*
+  }
+
+  if(!is.na(weblink)){
+    # Test validity and obtain current user information:
+    keys <- refresh_users(weblink, setup=TRUE)
+    existingusernames <- tolower(keys$usernames)
+  }else{
+    # NB: NA weblink allows us to create an account with no group
+    existingusernames <- character(0)
+  }
 
   ## Then ask for name, email, username:
-  name <- readline(prompt="Name:  ")
-  email <- readline(prompt="Email:  ")
+  if(is.null(name)) name <- readline(prompt="Name:  ")
+  if(is.null(email)) email <- readline(prompt="Email:  ")
   tuser <- tolower(str_remove(email, "@.*"))
   chkuser <- function(user, err=FALSE){
     msg <- ""
@@ -27,49 +36,63 @@ gy_setup <- function(){
     if(tolower(user)=="all") msg <- ("The username 'all' cannot be used")
     if(tolower(user)=="admin") msg <- ("The username 'admin' cannot be used")
     if(gsub("[[:alnum:]]","",user)!="") msg <- ("The username can only contain letters and numbers")
-    if(tolower(user) %in% tolower(keys$users$usernames)) msg <- ("That username is already taken: to re-use your own username please contact the group admin")
+    if(tolower(user) %in% existingusernames) msg <- ("That username is already taken: to re-use your own username please contact the group admin")
     if(err && msg!="") stop(msg, call.=FALSE)
     invisible(msg)
   }
-  if(chkuser(tuser, err=FALSE)==""){
-    user <- tolower(readline(prompt=str_c("Username (leave blank to accept ", tuser, "):  ")))
-    if(user=="") user <- tuser
-  }else{
-    user <- tolower(readline(prompt=str_c("Username:  ")))
+  if(is.null(user)){
+    if(chkuser(tuser, err=FALSE)==""){
+      user <- tolower(readline(prompt=str_c("Username (leave blank to accept ", tuser, "):  ")))
+      if(user=="") user <- tuser
+    }else{
+      user <- tolower(readline(prompt=str_c("Username:  ")))
+    }
   }
   chkuser(user, err=TRUE)
 
   ## Password:
-  repeat{
-    pass <- getPass(msg="Password:  ", noblank = TRUE)
-    pass2 <- getPass(msg="Password (confirm):  ", noblank = TRUE)
-    if(pass==pass2) break
-    cat("Error:  passwords do not match!  Try again...\n")
+  if(user %in% key_list("goldeneye")[,"username"]){
+    cat("Note: Re-using existing keyring password for goldeneye user '", user, "'\n", sep="")
+    pass <- key_get("goldeneye", username=user)
+  }else{
+    repeat{
+      pass <- getPass(msg="Password:  ", noblank = TRUE)
+      pass2 <- getPass(msg="Password (confirm):  ", noblank = TRUE)
+      if(pass==pass2) break
+      cat("Error:  passwords do not match!  Try again...\n")
+    }
+    # Store the password:
+    key_set_with_value("goldeneye", user, pass)
   }
 
   ## File locations:
   repeat{
-    filename <- readline(prompt=str_c("User file (leave blank to accept ", keys$group, "_", user, ".gyp):  "))
-    if(filename=="") filename <- str_c(keys$group, "_", user, ".gyp")
-    cat("Please select a location to store this file...\n")
-    # rstudioapi version:
-    if(isAvailable("1.1.288")){
-      Sys.sleep(1)
-      path <- selectDirectory()
-    }else{
-      repeat{
-        path <- readline(prompt="Directory to use:  ")
-        if(dir.exists(path)) break
-        cat("Error: directory not found ... please try again\n")
+    if(is.null(filename)){
+      filename <- readline(prompt=str_c("User file (leave blank to accept gy_", user, "_private.gyp):  "))
+    }
+    if(is.null(filename) || filename=="") filename <- str_c("gy_", user, "_private.gyp")
+
+    if(is.null(path) || !dir.exists(path)){
+      cat("Please select a location to store this file...\n")
+      # rstudioapi version:
+      if(isAvailable("1.1.288")){
+        Sys.sleep(1)
+        path <- selectDirectory()
+      }else{
+        repeat{
+          path <- readline(prompt="Directory to use:  ")
+          if(dir.exists(path)) break
+          cat("Error: directory not found ... please try again\n")
+        }
       }
     }
 
     if(!file.exists(file.path(path, filename))) break
     cat("Error:  file already exists, enter a new filename\nor manually delete the old file before proceeding\n")
+    filename <- NULL
+    path <- NULL
   }
 
-  # Store the password:
-  key_set_with_value("goldeneye", str_c(keys$group, ":", user), pass)
   # Generate and store a salt:
   salt <- str_c(sample(c(letters,LETTERS,0:9),6),collapse="")
   # Convert to symmetric encryption key:
@@ -97,47 +120,59 @@ gy_setup <- function(){
   stopifnot(identical(msg, simple_decrypt(tt, private_curve)))
 
   ## Create the storage file:
-  group <- keys[["group"]]
   versions <- get_versions(type="generic")
 
   public_save <- list(user=user, name=name, email=email, versions=versions, public_curve=public_curve, public_ed=public_ed)
 
-  # Allow a single profile file to contain multiple groups (assuming that username and key are the same, so just the admin key differs):
-  admin_ed <- list(keys[["admin_ed"]])
-  names(admin_ed) <- group
+  if(is.na(weblink)){
+    # If we have no group yet:
+    group <- NA_character_
+    allweblinks <- list(default_group=group)
+    admin_ed <- list()
+  }else{
+    # Allow a single profile file to contain multiple groups (assuming that username and key are the same, so just the admin key differs):
+    group <- keys[["group"]]
+    allweblinks <- list(default_group=group, gp1=list(weblink=weblink, admin_ed=keys[["admin_ed"]]))
+    names(allweblinks) <- c("default_group", group)
+  }
 
-  private_save <- c(public_save, list(salt=salt, encr_curve=encr_curve, encr_ed=encr_ed, admin_ed=admin_ed, weblink=weblink))
+  private_save <- c(public_save, list(salt=salt, encr_curve=encr_curve, encr_ed=encr_ed, groups=allweblinks))
   saveRDS(private_save, file=file.path(path, filename), compress=FALSE)
 
   public_save <- c(public_save, list(group=group))
-
 
   cat("#### Setup complete ####\n")
 
   ## Add the path to the storage file to the user's Rprofile:
 
-  rprofline <- str_c("options(goldeneye_path='", file.path(path, filename), "')\n")
-  eval(parse(text=rprofline))
-  cat("In order for goldeneye to work between R sessions, you need\nto add the following line to your R profile:\n", rprofline, "\n")
-  ok <- readline(str_c("To do this automatically (for '", file.path("~", ".Rprofile"), "') type y:  "))
-  if(tolower(ok)=="y"){
-    cat("\n\n## Added by the goldeneye package on ", as.character(Sys.Date()), ":\n", rprofline, "\n\n", sep="", file=file.path("~", ".Rprofile"), append=TRUE)
-    cat("R profile file appended\n")
+  if(append_Rprofile){
+    rprofline <- str_c("options(goldeneye_path='", file.path(path, filename), "')\n")
+    eval(parse(text=rprofline))
+    cat("In order for goldeneye to work between R sessions, you need\nto add the following line to your R profile:\n", rprofline, "\n")
+    ok <- readline(str_c("To do this automatically (for '", file.path("~", ".Rprofile"), "') type y:  "))
+    if(tolower(ok)=="y"){
+      cat("\n\n## Added by the goldeneye package on ", as.character(Sys.Date()), ":\n", rprofline, "\n\n", sep="", file=file.path("~", ".Rprofile"), append=TRUE)
+      cat("R profile file appended\n")
+    }
   }
 
-  gy_userfile()
+  gy_userfile(file.path(path, filename))
+  package_env$currentgroup <- group
 
   ## Create a file to be sent for public registration:
-  public_encry <- data_encrypt(serialize(public_save, NULL), hash(charToRaw(keys$webpwd)))
+  if(!is.na(weblink)){
+    public_encry <- data_encrypt(serialize(public_save, NULL), hash(charToRaw(keys$webpwd)))
 
-  pfilen <- str_c(keys$group, "_", user, "_public.gyp")
-  saveRDS(public_encry, file=pfilen, compress=FALSE)
+    pfilen <- str_c("gy_", user, "_public.gyp")
+    saveRDS(public_encry, file=pfilen, compress=FALSE)
 
-  cat("Account creation complete: please send the following file to the group admin:  '", pfilen, "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
+    cat("Account creation complete: please send the following file to the group admin:  '", pfilen, "'\nNOTE: in sending this file, you consent to your name and email address (as given above) being stored and made available in encrypted form via ", keys$weburl, "\n", sep="")
+  }
 
-  goldfinger_env$group <- keys$group
 
   ## TODO: add something more about GDPR ??
+
+  invisible(file.path(path, filename))
 
 }
 

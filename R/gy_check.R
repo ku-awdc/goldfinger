@@ -14,12 +14,13 @@ gy_userfile <- function(path = getOption('goldeneye_path'), silent=FALSE){
   if(is.null(path)) stop("Path to the goldeneye user file not found: set options(goldeneye_path='...') and try again", call.=FALSE)
   if(!file.exists(path)) stop("No goldeneye user file found at ", path)
 
-  local <- upgrade_user(readRDS(path), path)
+  local <- gy_check(upgrade_user(readRDS(path), path))
+  package_env$currentlocal <- local
 
-  goldfinger_env$localuser <- gy_check(local)
-  ## TODO: implement multiple groups
-  goldfinger_env$group <- names(local$admin_ed)[1]
-  goldfinger_env$user <- local$user
+  ## TODO: implement switching between multiple groups
+  package_env$currentgroup <- local$groups$default_group
+
+  if(!silent) cat("User set to '", local$user, "' of group '", package_env$currentgroup, "' (from file '", path, "')\n", sep="")
 
   invisible(local)
 }
@@ -28,17 +29,20 @@ gy_userfile <- function(path = getOption('goldeneye_path'), silent=FALSE){
 #' @export
 gy_check <- function(local=NULL, silent=FALSE){
 
-  if(is.null(local)) stop("FIXME")
+  if(is.null(local)) local <- package_env$currentlocal
+  if(is.null(local)) gy_userfile()
 
-  # Take the first group if there are multiple:
-  group <- names(local[["admin_ed"]][1])
+  group <- package_env$currentgroup
   ## TODO: allow switching between groups
 
   ## Check naming is OK:
   lcn <- names(local)
-  epn <- c("user", "name", "email", "versions", "public_curve", "public_ed", "salt", "encr_curve", "encr_ed", "admin_ed", "weblink")
+  epn <- c("user", "name", "email", "versions", "public_curve", "public_ed", "salt", "encr_curve", "encr_ed", "groups")
   if(length(lcn)!=length(epn) || !all(epn %in% lcn)){
     stop("An unexpected error occured while processing the user file - please contact the package author", call.=FALSE)
+  }
+  if(!is.list(local[["groups"]]) || !"default_group" %in% names(local[["groups"]])){
+    stop("An unexpected error occured while processing the groups element of the user file - please contact the package author", call.=FALSE)
   }
 
   ## Obtain the private curve key:

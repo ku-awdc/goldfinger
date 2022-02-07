@@ -4,39 +4,39 @@ library(sodium)
 library(cyphr)
 library(goldfinger)
 
-# Users and pwd must already be available
-user_info <- goldfinger:::gf_all_keys(TRUE, TRUE)
-user_info <- user_info[!names(user_info)=="local_user"]
-pwd
+weblink <- readRDS(getOption("goldeneye_path"))$groups$goldfinger$weblink
+webinfo <- goldfinger:::refresh_users(weblink)
+user_info <- webinfo$users
+names(user_info)
 
-
-# TODO: back to working on new user setup...
-
-weblink <- paste0("https://www.costmodds.org/rsc/goldeneye/goldfinger.gyu", "#", pwd, "#", "md")
-# Save an upgrade file for md/makg/mossa:
-# weblinfo <- lapply(user_info, function(x) simple_encrypt(serialize(weblink, NULL), x$public_key))
-# saveRDS(weblinfo, "upgrade0.2.rds", compress=FALSE)
-
+## Add new users:
+newusers <- list.files("/Users/matthewdenwood/Documents/Resources/Goldeneye/goldfinger/incoming", full.names=TRUE)
+ssn <- readRDS(newusers)
+ssn$version <- as.character(ssn$versions["actual"])
+ssn$date_time <- as.character(ssn$versions["date_time"])
+ssn <- ssn[names(user_info$md)]
 
 ## Note:  usernames may also include previous (no longer valid) usernames to avoid clashes
-usernames <- names(user_info)
+usernames <- c(webinfo$usernames, ssn$user)
+
+user_info <- c(user_info, list(saxmose=ssn))
 
 ## There are two types of public key, neither of which need to be encrypted:
-public_curve <- lapply(user_info, function(x) x$public_key)
-public_ed <- lapply(user_info, function(x) NA_real_)
-public_ed$md <- readRDS('~/Documents/Personal/goldfinger_md.gyp')$public_ed
-stopifnot(identical(readRDS('~/Documents/Personal/goldfinger_md.gyp')$public_curve, public_curve$md))
+public_curve <- lapply(user_info, function(x) x$public_curve)
+public_ed <- lapply(user_info, function(x) x$public_ed)
+#public_ed$md <- readRDS('~/Documents/Personal/goldfinger_md.gyp')$public_ed
+#stopifnot(identical(readRDS('~/Documents/Personal/goldfinger_md.gyp')$public_curve, public_curve$md))
 
 user_info <- lapply(user_info, function(x) x[!names(x)%in%c("public_key","public_ed","public_curve")])
 
-users <- list(usernames=usernames, user_info=data_encrypt(serialize(user_info, NULL), hash(charToRaw(pwd))), public_curve=public_curve, public_ed=public_ed)
+users <- list(usernames=usernames, user_info=data_encrypt(serialize(user_info, NULL), hash(charToRaw(webinfo$webpwd))), public_curve=public_curve, public_ed=public_ed)
 
 verification <- gy_sign(users)
 
 # Note: this is used for checking the download and the verification separately:
 versions <- attr(verification, "versions")
 versions["type"] <- "generic"
-#versions["minimum"] <- "0.4.0-1"
+versions["minimum"] <- "0.4.1-0"
 attr(verification, "versions") <- versions
 stopifnot(gy_verify(users, verification, silent=TRUE))
 attr(verification, "user") <- NULL

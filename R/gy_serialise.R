@@ -13,12 +13,12 @@
 #'
 #' @rdname gy_serialise
 #' @export
-gy_serialise <- function(object, files=character(0), method="base", ...){
+gy_serialise <- function(object, files=character(0), method="qs", ...){
 
   if(!is.character(method) || length(method)!=1 || is.na(method)) stop("The serialisation method argument must be a length 1 character", call.=FALSE)
 
-  if(any(names(object)=="serialised_files")){
-    stop("The name 'serialised_files' is reserved - please rename this element of the object list", call.=FALSE)
+  if(any(names(object)==".serialise_files")){
+    stop("The name '.serialise_files' is reserved - please rename this element of the object list", call.=FALSE)
   }
 
   ## TODO: files
