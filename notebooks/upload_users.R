@@ -10,16 +10,22 @@ user_info <- webinfo$users
 names(user_info)
 
 ## Add new users:
-newusers <- list.files("/Users/matthewdenwood/Documents/Resources/Goldeneye/goldfinger/incoming", full.names=TRUE)
-ssn <- readRDS(newusers)
-ssn$version <- as.character(ssn$versions["actual"])
-ssn$date_time <- as.character(ssn$versions["date_time"])
-ssn <- ssn[names(user_info$md)]
+list.files("/Users/matthewdenwood/Documents/Resources/Goldeneye/goldfinger/incoming", full.names=TRUE) %>%
+  lapply(function(x){
+    enc <- readRDS(x)
+    usr <- unserialize(data_decrypt(enc, hash(charToRaw(webinfo$webpwd))))
+    usr$version <- as.character(usr$versions["actual"])
+    usr$date_time <- as.character(usr$versions["date_time"])
+    usr[names(user_info[[1]])]
+  }) ->
+  newusers
+names(newusers) <- sapply(newusers, function(x) x$user)
+
+user_info <- c(user_info, newusers)
+stopifnot(all(table(names(user_info))==1))
 
 ## Note:  usernames may also include previous (no longer valid) usernames to avoid clashes
-usernames <- c(webinfo$usernames, ssn$user)
-
-user_info <- c(user_info, list(saxmose=ssn))
+usernames <- unique(c(webinfo$usernames, names(user_info)))
 
 ## There are two types of public key, neither of which need to be encrypted:
 public_curve <- lapply(user_info, function(x) x$public_curve)
@@ -28,6 +34,7 @@ public_ed <- lapply(user_info, function(x) x$public_ed)
 #stopifnot(identical(readRDS('~/Documents/Personal/goldfinger_md.gyp')$public_curve, public_curve$md))
 
 user_info <- lapply(user_info, function(x) x[!names(x)%in%c("public_key","public_ed","public_curve")])
+user_info$saxmose$name <- "Søren Saxmose Nielsen"
 
 users <- list(usernames=usernames, user_info=data_encrypt(serialize(user_info, NULL), hash(charToRaw(webinfo$webpwd))), public_curve=public_curve, public_ed=public_ed)
 
