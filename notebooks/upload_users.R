@@ -45,7 +45,7 @@ verification <- gy_sign(users)
 # Note: this is used for checking the download and the verification separately:
 versions <- attr(verification, "versions")
 versions["type"] <- "generic"
-versions["minimum"] <- "0.4.1-0"
+versions["minimum"] <- "0.4.2-0"
 attr(verification, "versions") <- versions
 stopifnot(gy_verify(users, verification, silent=TRUE))
 attr(verification, "user") <- NULL
