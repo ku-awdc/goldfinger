@@ -9,7 +9,7 @@ get_localuser <- function(){
 
 
 # This function only gets called to set up a new user for a group:
-refresh_users <- function(weblink, admin_ed=NULL, setup=FALSE, silent=FALSE){
+refresh_users <- function(weblink, setup=FALSE, silent=FALSE){
 
   stopifnot(is.character(weblink), length(weblink)==1, !is.na(weblink))
   if(!str_detect(weblink, "#")) stop("Invalid setup link provided (no #)", call.=FALSE)
@@ -41,6 +41,8 @@ refresh_users <- function(weblink, admin_ed=NULL, setup=FALSE, silent=FALSE){
     ## If this is a setup run then save the administrators public ed key:
     if(!weblink[3] %in% names(public_ed)) stop("Invalid admin username", call.=FALSE)
     admin_ed <- public_ed[[weblink[3]]]
+  }else{
+    admin_ed <- get_localuser()$groups[[get_localuser()$group]]$admin_ed
   }
 
   ## Verify the downloaded user:
@@ -79,7 +81,7 @@ get_users <- function(all_users=FALSE, group=package_env$currentgroup, refresh=F
   }
 
   if(refresh || is.null(goldfinger_env$webcache[[group]])){
-    refresh_users(get_localuser()[["groups"]][[group]][["weblink"]], get_localuser()[["groups"]][[group]][["admin_ed"]], setup=FALSE, silent=FALSE)
+    refresh_users(get_localuser()[["groups"]][[group]][["weblink"]], setup=FALSE, silent=FALSE)
   }
   lapply(goldfinger_env$webcache[[group]], function(x) stopifnot(all(names(x) == c("name","email","user","version","date_time","public_curve","public_ed"))))
 

@@ -73,11 +73,15 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
 
   ## Get the relevant public key:
   if(is.null(public_ed)){
-    public_ed <- get_public_key(attr(signature, "user", exact=TRUE), "ed")
+    usrattr <- attr(signature, "user", exact=TRUE)
+    if(is.null(usrattr)){
+      stop("The provided signature does not have a 'user' attribute", call.=FALSE)
+    }
+    warning("FIXME\n")
+    public_ed <- get_public_key(usrattr, "ed")
   }
 
   ## Verify:
-  # save(original, object, signature, public_ed, file="debug_file.rda")
   ok <- try(sig_verify(object, signature, public_ed))
 
   if(inherits(ok, "try-error")) ok <- FALSE
