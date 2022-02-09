@@ -30,7 +30,7 @@ gy_userfile <- function(path = getOption('goldeneye_path'), silent=FALSE){
 gy_check <- function(local=NULL, silent=FALSE){
 
   if(is.null(local)) local <- package_env$currentlocal
-  if(is.null(local)) gy_userfile()
+  if(is.null(local)) local <- gy_userfile()
 
   group <- package_env$currentgroup
   ## TODO: allow switching between groups
