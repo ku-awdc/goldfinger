@@ -34,9 +34,6 @@ public_ed <- lapply(user_info, function(x) x$public_ed)
 #stopifnot(identical(readRDS('~/Documents/Personal/goldfinger_md.gyp')$public_curve, public_curve$md))
 
 user_info <- lapply(user_info, function(x) x[!names(x)%in%c("public_key","public_ed","public_curve")])
-user_info$saxmose$name <- "Søren Saxmose Nielsen"
-
-## TODO: change Sorens name
 
 users <- list(usernames=usernames, user_info=data_encrypt(serialize(user_info, NULL), hash(charToRaw(webinfo$webpwd))), public_curve=public_curve, public_ed=public_ed)
 
