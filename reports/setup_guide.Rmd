@@ -1,0 +1,278 @@
+---
+title: "Setup guide for goldfinger"
+date: "`r Sys.Date()`"
+author: Matt Denwood
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+unlink("secret_data.rdg")
+unlink("not_for_me.rdg")
+unlink("killswitch_data.rdg")
+unlink("external_key.txt")
+```
+
+## Installation
+
+You first need to install the goldfinger package from our drat repo, as well as the package dependencies from CRAN.  The easiest way to do this is as follows:
+
+```{r eval=FALSE}
+install.packages("goldfinger", repos=c("https://cran.rstudio.com/","https://ku-awdc.github.io/drat/"))
+```
+
+As well as the source package, there are binaries available for Windows and macOS (currently intel only).  But the package should compile from source on all systems.  The package is still being developed, so it may become necessary to install updates: you will be notified of this by the goldfinger package and given instructions for how to update.
+
+
+## Setup
+
+Before you can send or receive any encrypted data, you must first have a user profile.  To do this, run the following code:
+
+```{r}
+library("goldfinger")
+```
+
+```{r, eval=FALSE}
+gy_setup()
+```
+
+You will be asked for the following information:
+
+1.  Setup link:  this will be sent to you via email, and contains an encryption code that protects the personal information (names and email addresses) that need to be stored online
+
+1.  Name:  your name as you wish it to appear on the user list e.g. "Joe Bloggs"
+
+1.  Email:  the email address that you want to use for this user (e.g. your KU email address)
+
+1.  Username:  a username that you want to use.  The recommendation is to use the first part of your email address, and the software will suggest this option if it is valid (just hit enter to accept it).  Note that spaces, punctuation, and non-ASCII characters (å ø æ etc) are not allowed.
+
+1.  Password:  the password that you want to use (enter the same password twice for verification).  See below for more information on how passwords are handled.
+
+1.  User file:  the name of the private key file to store on your computer.  The recommendation is to accept the default (just press enter to accept it).
+
+1.  Location:  the place on your computer (or network drive) to store the private key file.  You can change the location of this later if needed.
+
+1.  Permission to amend your .Rprofile:  this stores the location of your private key file between R sessions so that you don't need to enter it again if you restart R.  The recommendation is to accept this i.e. type y and then hit enter.
+
+Once you have completed user setup, two files will be created for you:
+
+-  gy_user_public.gyp [where "user" is your username]:  this contains your public keys which other people will need to send you data and/or receive data from you.  Please should send this file to Matt by email.
+
+-  gy_user_private.gyp [where "user" is your username]:  this contains your private keys which you will need to decrypt data sent to you from others (and to encrypt data to send to others).  Please DO NOT send this file to anyone.  You should keep it safe (and backed up) on your own machine, and/or on your personal folder on the network drive.  DO NOT put this file on any shared network drive.
+
+You can now see a list of the currently available users in goldfinger using this code:
+
+```{r}
+gy_users()
+```
+
+When the function is run, an updated list of users is downloaded from a shared resource on the internet.  By default this file is only fetched once per R session, but you can force an update using:
+
+```{r}
+gy_users(refresh=TRUE)
+```
+
+Once Matt has received and processed your public file, then your details will be included in this list.
+
+
+## A note on passwords
+
+The goldfinger package stores your password using the keyring package.  On Windows, this means using the Credential Store, on macOS it uses Keychain, and on Linux it uses the Secret Service API.  These passwords are safely stored as part of the user settings on your computer, and can only be read by processes running under your user account when you are physically logged in.  This provides a relatively strong safety mechanism in a highly convenient way.  You can see the usernames that have a
+password saved with goldfinger using the keyring package:
+
+```{r}
+keyring::key_list("goldfinger")
+```
+
+You will need to re-enter your password in the following situations:
+
+- You get a new computer, or move user accounts, or reformat your computer
+
+- You forget your user password and have KU-IT reset it for you
+
+- Your password is removed from keyring some other way (e.g. by key_delete())
+
+It is therefore highly important that you don't forget your password.  If you do forget it, then you will have to create a new user profile and you will permanently lose access to the datasets you have saved for the old profile.  So don't let that happen:  either make a secure note of the password (for example in your eBoks "kodehusker": [https://brugersupport.e-boks.dk/hc/da/articles/360008564399-Kodehusker]) or (even better) start using a secure password manager [https://uk.pcmag.com/password-managers/137639/why-you-need-a-password-manager-and-how-to-choose-the-right-one]
+
+
+## A note on the private key file
+
+Your username and password are used to encrypt the private keys that are stored in your private key file, but it is the private keys that are used to encrypt the data.  So, if you lose your private key file then your password is useless, and you can no longer decrypt your data files.  You must therefore keep your private key file (gy_user_private.gyp) somewhere safe and where it is backed up so that you don't lose it if e.g. your hard drive fails.  You can also move the private key file to a different folder, and/or use the same private key file on multiple computers, as needed.  But don't put it anywhere public, such as the internet or a shared network drive, as it represents a small security risk (it is much easier to brute force the decryption used to store your private key than to brute force the private key itself).
+
+
+## Basic usage
+
+The goldfinger package uses the following concepts in combination:
+
+- serialisation:  this allows any arbitrary R object (or external file) to be converted to binary code, and then compressed for more efficient storage.  This is done via the qs package, and used by goldfinger before encryption.
+
+- symmetric encryption:  this allows large serialised objects to be encrypted quickly and efficiently, with the same key being used to encrypt and decrypt the data.  This is done via the sodium package, and used by goldfinger to encrypt data and files, with a unique (randomly generated) symmetric key for each dataset.
+
+- asymmetric encryption:  this allows smaller objects to be encrypted for a particular user using their public key, so that only that user can decrypt the object.  This is also done via the sodium package, and used by goldfinger to encrypt the symmetric key for specific users.  This avoids the need to transmit a symmetric decryption key over potentially unsafe channels.
+
+Each of these processes is encapsulated into the simple user-facing functions gy_save and gy_load.  For example, let's say that we have two data files that we need to keep safe:
+
+```{r}
+data(cars)
+str(cars)
+text <- "Don't tell anybody!"
+```
+
+In this case it is a data frame and a string, but it could be any R object or external file.  To save them safely for your use only, use gy_save in exactly the same way you would use save:
+
+```{r}
+gy_save(cars, text, file="secret_data.rdg")
+```
+
+Then you can re-load them in a new R session using gy_load (in the same way that you would use load):
+
+```{r}
+library("goldfinger")
+(gy_load("secret_data.rdg"))
+```
+
+To encrypt something for multiple people to use, you need to use the user argument, where user is one or more valid usernames obtained from gy_users.  For example, the following will be usable by Maya and Søren as well as yourself (the overwrite=TRUE argument is needed because the file already exists):
+
+```{r}
+gy_save(cars, text, file="secret_data.rdg", user=c("makg","saxmose"), overwrite=TRUE)
+```
+
+To save something that you cannot open (but Maya and Søren can), then use local_user=FALSE as follows:
+
+```{r}
+gy_save(cars, text, file="not_for_me.rdg", user=c("makg","saxmose"), local_user=FALSE)
+```
+
+You (and any other user other than Maya and Søren) will get the following message when attempting to load this file:
+
+```{r, error=TRUE}
+(gy_load("not_for_me.rdg"))
+```
+
+
+## How does it work?
+
+Let's look "under the hood" at the file we created for the local user (in this case Matt), Maya and Søren:
+
+```{r}
+readRDS("secret_data.rdg")
+```
+
+The file contains a list of the following elements:
+
+- group:  the name of the group (this package will also be used for other things than goldfinger, and separating groups reduces the chances that data permissions are accidentally given to the wrong user)
+
+- metadata:  some house-keeping information that is used by goldfinger, along with the public key of the user that encrypted the file (the same information is also available online, which is used to ensure that the user that claims to have encrypted the data actually did so)
+
+- decrypt:  this is a list of encrypted symmetric keys, where each version of the symmetric key is encrypted for one specific user (the encrypted data also contains other randomised data for obfiscation in order to make brute forcing the decryption keys harder)  We can use the private key stored in our private key file to decrypt the relevant element of this list, and obtain the symmetric key used to encrypt the data.
+
+- object_encr:  this is the (compressed, serialised) encrypted object itself.  Decrypting this requires the symmetric key that an authorised user can obtain from the decrypt element of the list.
+
+Without a private key corresponding to one of the listed users, decrypting the data contained in this file is only possible by guessing the symmetric encryption key (which is itself generated using sodium::keygen, then encrypted for specific users, and then discarded).  This key is 32 bytes (256 bits), i.e. there are over 10^77 possible combinations for an attacker to try.
+
+
+## Ultra-safe usage
+
+For some particularly sensitive data, a "kill switch" may be required so that the data owner can rescind permission to decrypt a data file under certain conditions (e.g. after a particular date, or if a security breach is suspected).  To facilitate this, goldfinger allows an extra layer of security using user-specified supplementary encrypt and decrypt functions.
+
+For example, let's set up a decryption scheme that requires external information to decrypt the data.  We can start by writing an external key (generated using sodium) to an external file:
+
+```{r}
+library("sodium")
+dput(keygen(), file="external_key.txt")
+```
+
+This is the contents of the file:
+
+```{r}
+cat(readLines("external_key.txt"))
+```
+
+Then we can write a pair of functions that take an input, and encrypt/decrypt this input using the key in the file.  The important point is that the file is read every time the function is run, and the external key is never stored:
+
+```{r}
+encfun <- function(x){
+  cat("Reading external key for encryption...\n")
+  ss <- try({
+    conn <- file("external_key.txt")
+    extkey <- dget(conn)
+    close(conn)
+  })
+  if(inherits(ss, "try-error")) stop("External key not available - cannot encrypt!")
+  sodium::data_encrypt(x, extkey)
+}
+
+decfun <- function(x){
+  cat("Reading external key for decryption...\n")
+  ss <- try({
+    conn <- file("external_key.txt")
+    extkey <- dget(conn)
+    close(conn)
+  })
+  if(inherits(ss, "try-error")) stop("External key not available - cannot decrypt!")
+  sodium::data_decrypt(x, extkey)
+}
+```
+
+The encryption function can be used to encrypt any raw data using this key, for example the raw encoding of my name:
+
+```{r}
+name <- charToRaw("Matt")
+name
+rawToChar(name)
+enc_name <- encfun(name)
+rm(name)
+```
+
+We now have an encrypted version of the raw data, which is not the same as the original:
+
+```{r}
+rawToChar(enc_name)
+```
+
+But we can recover the original using the corresponding decryption function that uses the same key:
+
+```{r}
+name <- decfun(enc_name)
+rawToChar(name)
+```
+
+To use this with goldfinger we could do the following to encode the file for Søren and ourselves:
+
+```{r}
+gy_save(cars, text, file="killswitch_data.rdg", user=c("saxmose"), funs = list(type="custom", encr_fun=encfun, decr_fun=decfun))
+```
+
+Note that inspecting the encrypted data does not tell us that an external key is needed, as this information is all hidden behind the asymetric encryption strategy:
+
+```{r}
+# Not run for this vignette as the output is quite long:
+# readRDS("killswitch_data.rdg"))
+```
+
+The only sign that something is more complex is that each element of the decrypt element of the list is longer than it was for the simple encryption.
+
+To decrypt, we just use gy_load as usual (i.e. the end user:
+
+```{r}
+(gy_load("killswitch_data.rdg"))
+```
+
+But if we remove the external key file, then the data can no longer be decrypted:
+
+```{r error=TRUE}
+file.remove("external_key.txt")
+(gy_load("killswitch_data.rdg"))
+```
+
+Note that the "external_key.txt" file would normally be placed on a webserver by the data owner, so that they can remove the file at any point and effectively shut all users out of the data.  This is achieved simply by replacing the file handle in the two functions with a url handle (but as before, the location of this file is hidden within the .rdg file using asymetric encryption).  
+
+Of course this does not prevent an authorised user from extracting the data when they have permission to do so and storing it elsewhere in an unencrypted format for later use - however this type of deliberate misuse of the system could be explicitly prohibited by the terms of use of the data source.
+
+
+```{r include=FALSE}
+unlink("secret_data.rdg")
+unlink("not_for_me.rdg")
+unlink("killswitch_data.rdg")
+unlink("external_key.txt")
+```

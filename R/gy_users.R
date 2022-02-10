@@ -14,7 +14,13 @@ gy_users <- function(group=NULL, refresh=FALSE){
   users <- get_users(all_users=TRUE, group=group, refresh=refresh)
 
   ## TODO: prettier printing
-  print(lapply(users, function(x) x[c("user","name","email","date_time")]))
 
-  invisible(names(users))
+  usrs <- t(vapply(users, function(x){
+    c(unlist(x[c("user","name","email")]), user_since=str_replace(as.character(x$date_time), " .*", ""))
+    }, character(4))) %>%
+    as_tibble() %>%
+    mutate(user_since=as.Date(user_since)) %>%
+    arrange(user_since)
+
+  return(usrs)
 }

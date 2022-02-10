@@ -1,7 +1,7 @@
 upgrade_user <- function(local, path){
 
   # Major change from version <=2 to version 3:
-  if("version" %in% names(local) && numeric_version(local[["version"]]) < 0.3){
+  if("version" %in% names(local)){
 
     if(!local$user %in% c("md","mossa","makg")){
       stop("The upgrade function is not configured for you - please contact Matt for help", call.=FALSE)
@@ -119,6 +119,17 @@ upgrade_user <- function(local, path){
 
     local <- gy_userfile(filename, silent=TRUE)
   }
+
+  if(numeric_version(local[["versions"]][["actual"]]) < "0.4.2" && local$name=="saxmose"){
+
+    nn <- "S\u00f8ren Saxmose Nielsen"
+    cat("Changing name from 'saxmose' to '", nn, "'...\n", sep="")
+    local$name <- nn
+    saveRDS(local, file=path, compress=FALSE)
+    cat("Note:  the file at '", path, "' has been amended: please replace any other copies of the old file with this updated file\n", sep="")
+
+  }
+
 
   return(local)
 
