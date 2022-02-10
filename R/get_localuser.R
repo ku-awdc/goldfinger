@@ -120,7 +120,7 @@ check_version <- function(versions, local_versions=get_versions()){
 
 get_versions <- function(...){
   retval <- c(package_env$versions, date_time=as.character(Sys.time()), ...)
-  if(!"minimum" %in% names(retval)) retval <- c(retval, minimum="0.4.0-0")
+  if(!"minimum" %in% names(retval)) retval <- c(retval, minimum="0.4.2-0")
   if(!"type" %in% names(retval)) retval <- c(retval, type="generic")
   check_version(retval, local_versions=retval)
   return(retval)
