@@ -12,13 +12,6 @@ options(
 install.packages("goldfinger")
 ```
 
-To set up a user:
+Or you can check out the instructions at:
 
-```r
-library("goldfinger")
-gf_setup()
-```
-
-and follow the instructions.
-
-More help will be added soon...
+https://www.costmodds.org/rsc/teaching/setup_guide.html
