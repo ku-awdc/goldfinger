@@ -44,7 +44,7 @@ You will be asked for the following information:
 
 1.  Email:  the email address that you want to use for this user (e.g. your KU email address)
 
-1.  Username:  a username that you want to use.  The recommendation is to use the first part of your email address, and the software will suggest this option if it is valid (just hit enter to accept it).  Note that spaces, punctuation, and non-ASCII characters (å ø æ etc) are not allowed.
+1.  Username:  a username that will be used to uniquely identify you.  Note that this is primarily used by other people when encrypting data for your use, so you should use a username that clearly identifies you.  The recommendation is to use the first part of your email address, and the software will suggest this option if it is valid (just hit enter to accept it).  Note that spaces, punctuation, and non-ASCII characters (å ø æ etc) are not allowed.
 
 1.  Password:  the password that you want to use (enter the same password twice for verification).  See below for more information on how passwords are handled.
 
