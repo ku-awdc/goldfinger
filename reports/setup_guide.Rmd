@@ -60,15 +60,23 @@ Once you have completed user setup, two files will be created for you:
 
 -  gy_user_private.gyp [where "user" is your username]:  this contains your private keys which you will need to decrypt data sent to you from others (and to encrypt data to send to others).  Please DO NOT send this file to anyone.  You should keep it safe (and backed up) on your own machine, and/or on your personal folder on the network drive.  DO NOT put this file on any shared network drive.
 
-You can now see a list of the currently available users in goldfinger using this code (the redact=TRUE argument obscures email addresses because this document is online!):
+You can now see a list of the currently available users in goldfinger using this code (email addresses are obscured here because this document is online):
 
-```{r}
+```{r eval=FALSE}
+gy_users()
+```
+
+```{r echo=FALSE}
 gy_users(redact=TRUE)
 ```
 
 When the function is run, an updated list of users is downloaded from a shared resource on the internet.  By default this file is only fetched once per R session, but you can force an update using:
 
-```{r}
+```{r eval=FALSE}
+gy_users(refresh=TRUE)
+```
+
+```{r echo=FALSE}
 gy_users(refresh=TRUE, redact=TRUE)
 ```
 
