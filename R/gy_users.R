@@ -7,7 +7,7 @@
 #' @export
 #'
 #' @examples
-gy_users <- function(group=NULL, refresh=FALSE){
+gy_users <- function(group=NULL, refresh=FALSE, redact=FALSE){
 
   if(is.null(package_env$currentlocal)) gy_userfile()
   if(is.null(group)) group <- package_env$currentgroup
@@ -21,6 +21,8 @@ gy_users <- function(group=NULL, refresh=FALSE){
     as_tibble() %>%
     mutate(user_since=as.Date(user_since)) %>%
     arrange(user_since)
+
+  if(redact) usrs$email <- "**@**.**"
 
   return(usrs)
 }

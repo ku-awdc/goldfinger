@@ -1,7 +1,7 @@
 Package: goldfinger
 Title: Support Package for GOLDFINGER
-Date: 2022-02-10
-Version: 0.4.3-0
+Date: 2022-03-10
+Version: 0.4.3-1
 Authors@R: 
     c(
     person(given = "Matt",
