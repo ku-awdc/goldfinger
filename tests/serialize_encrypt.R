@@ -1,3 +1,5 @@
+library("goldfinger")
+
 #fn <- gy_setup(NULL, "test", "test@test.com", "test", "", getwd(), append_Rprofile=FALSE)
 fn <- gy_setup(NA_character_, "test", "test@test.com", "test", "", getwd(), append_Rprofile=FALSE)
 unlink(fn)
@@ -54,40 +56,44 @@ rm(x2)
 unlink("test.rdg")
 
 
-gy_userfile('~/Downloads/gy_test_private.gyp')
-obj1a <- gy_decrypt(enc1)
+if(FALSE){
 
-enc2 <- gy_encrypt(obj2, user="md")
-obj2a <- gy_decrypt(enc2)
-stopifnot(identical(x, gy_deserialise(obj2a)))
+  gy_userfile('~/Downloads/gy_test_private.gyp')
+  obj1a <- gy_decrypt(enc1)
 
-gy_userfile('~/Documents/Personal/gy_md_private.gyp')
-obj2a <- gy_decrypt(enc2)
-stopifnot(identical(x, gy_deserialise(obj2a)))
+  enc2 <- gy_encrypt(obj2, user="md")
+  obj2a <- gy_decrypt(enc2)
+  stopifnot(identical(x, gy_deserialise(obj2a)))
 
-onkey <- sodium::hash(as.raw(runif(100)))
-#saveRDS(onkey, "~/Dropbox/goldeneye/kill_switch_test.rds")
-encfun <- function(x){
-  tmpfl <- tempdir(check=TRUE)
-  cat("Attempting to download killswitch...\n")
-  ss <- try({
-    conn <- url("https://www.dropbox.com/s/tpk6es9pm5xuu5b/kill_switch_test.rds?raw=1")
-    onkey <- readRDS(conn)
-    close(conn)
-  })
-  if(inherits(ss, "try-error")) stop("Killswitch not available to download")
-  sodium::data_encrypt(x, onkey)
+  gy_userfile('~/Documents/Personal/gy_md_private.gyp')
+  obj2a <- gy_decrypt(enc2)
+  stopifnot(identical(x, gy_deserialise(obj2a)))
+
+  onkey <- sodium::hash(as.raw(runif(100)))
+  #saveRDS(onkey, "~/Dropbox/goldeneye/kill_switch_test.rds")
+  encfun <- function(x){
+    tmpfl <- tempdir(check=TRUE)
+    cat("Attempting to download killswitch...\n")
+    ss <- try({
+      conn <- url("https://www.dropbox.com/s/tpk6es9pm5xuu5b/kill_switch_test.rds?raw=1")
+      onkey <- readRDS(conn)
+      close(conn)
+    })
+    if(inherits(ss, "try-error")) stop("Killswitch not available to download")
+    sodium::data_encrypt(x, onkey)
+  }
+  decfun <- function(x){
+    tmpfl <- tempdir(check=TRUE)
+    cat("Attempting to download killswitch...\n")
+    ss <- try({
+      conn <- url("https://www.dropbox.com/s/tpk6es9pm5xuu5b/kill_switch_test.rds?raw=1")
+      onkey <- readRDS(conn)
+      close(conn)
+    })
+    if(inherits(ss, "try-error")) stop("Killswitch not available to download")
+    sodium::data_decrypt(x, onkey)
+  }
+  enc4 <- gy_encrypt(obj2, funs = list(type="custom", encr_fun=encfun, decr_fun=decfun))
+  stopifnot(identical(x, gy_deserialise(gy_decrypt(enc4))))
+
 }
-decfun <- function(x){
-  tmpfl <- tempdir(check=TRUE)
-  cat("Attempting to download killswitch...\n")
-  ss <- try({
-    conn <- url("https://www.dropbox.com/s/tpk6es9pm5xuu5b/kill_switch_test.rds?raw=1")
-    onkey <- readRDS(conn)
-    close(conn)
-  })
-  if(inherits(ss, "try-error")) stop("Killswitch not available to download")
-  sodium::data_decrypt(x, onkey)
-}
-enc4 <- gy_encrypt(obj2, funs = list(type="custom", encr_fun=encfun, decr_fun=decfun))
-stopifnot(identical(x, gy_deserialise(gy_decrypt(enc4))))

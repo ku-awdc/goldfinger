@@ -4,13 +4,10 @@
 \alias{gy_users}
 \title{Title}
 \usage{
-gy_users(group = NULL, refresh = FALSE)
+gy_users(group = NULL, refresh = FALSE, redact = FALSE)
 }
 \arguments{
 \item{refresh}{}
-}
-\value{
-
 }
 \description{
 Title

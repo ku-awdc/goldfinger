@@ -23,9 +23,6 @@ gy_sign(object, method = "hash")
 
 \item{overwrite}{}
 }
-\value{
-
-}
 \description{
 Serialise and deserialise a list of objects/files
 
