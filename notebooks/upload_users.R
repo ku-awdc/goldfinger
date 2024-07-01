@@ -10,7 +10,7 @@ user_info <- webinfo$users
 names(user_info)
 
 ## Add new users:
-list.files("/Users/matthewdenwood/Documents/Resources/Goldeneye/goldfinger/incoming", full.names=TRUE) %>%
+list.files("~/Documents/Resources/Goldeneye/goldfinger/incoming", full.names=TRUE) %>%
   lapply(function(x){
     enc <- readRDS(x)
     usr <- unserialize(data_decrypt(enc, hash(charToRaw(webinfo$webpwd))))
