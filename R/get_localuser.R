@@ -9,7 +9,7 @@ get_localuser <- function(){
 
 
 # This function only gets called to set up a new user for a group:
-refresh_users <- function(weblink, setup=FALSE, silent=FALSE){
+refresh_users <- function(weblink, setup=FALSE, silent=FALSE, verify=TRUE){
 
   stopifnot(is.character(weblink), length(weblink)==1, !is.na(weblink))
   if(!str_detect(weblink, "#")) stop("Invalid setup link provided (no #)", call.=FALSE)
@@ -46,7 +46,7 @@ refresh_users <- function(weblink, setup=FALSE, silent=FALSE){
   }
 
   ## Verify the downloaded user:
-  gy_verify(info$users, info$verification, public_ed=admin_ed)
+  if(verify) gy_verify(info$users, info$verification, public_ed=admin_ed)
 
   ## Decrypt and extract user information:
   user_info <- unserialize(data_decrypt(info[["users"]][["user_info"]], hash(charToRaw(weblink[2]))))

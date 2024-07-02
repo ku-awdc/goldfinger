@@ -5,7 +5,7 @@ library(cyphr)
 library(goldfinger)
 
 weblink <- readRDS(getOption("goldeneye_path"))$groups$goldfinger$weblink
-webinfo <- goldfinger:::refresh_users(weblink)
+webinfo <- goldfinger:::refresh_users(weblink, verify=FALSE)
 user_info <- webinfo$users
 names(user_info)
 
