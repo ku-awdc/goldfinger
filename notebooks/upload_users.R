@@ -27,6 +27,15 @@ stopifnot(all(table(names(user_info))==1))
 ## Note:  usernames may also include previous (no longer valid) usernames to avoid clashes
 usernames <- unique(c(webinfo$usernames, names(user_info)))
 
+## To allow resetting:
+if(FALSE){
+  reset <- "mossa"
+  usernames <- usernames[!usernames %in% reset]
+  user_info <- user_info[!names(user_info) %in% reset]
+  usernames
+  names(user_info)
+}
+
 ## There are two types of public key, neither of which need to be encrypted:
 public_curve <- lapply(user_info, function(x) x$public_curve)
 public_ed <- lapply(user_info, function(x) x$public_ed)
