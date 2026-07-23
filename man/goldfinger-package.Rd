@@ -11,6 +11,11 @@ Support package for GOLDFINGER
 \author{
 \strong{Maintainer}: Matt Denwood \email{md@sund.ku.dk}
 
+Authors:
+\itemize{
+  \item Matt Denwood \email{md@sund.ku.dk}
+}
+
 Other contributors:
 \itemize{
   \item Mossa Merhi Reimert \email{mossa@sund.ku.dk} [contributor]

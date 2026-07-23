@@ -91,7 +91,7 @@ get_users <- function(all_users=FALSE, group=package_env$currentgroup, refresh=F
 check_version <- function(versions, local_versions=get_versions()){
 
   stopifnot(is.character(versions))
-  stopifnot(all(c("type","date_time","minimum","actual","sodium","qs","rcpp","R") %in% names(versions)))
+  stopifnot(all(c("type","date_time","minimum","actual","sodium","rcpp","R") %in% names(versions)))
   stopifnot(versions["type"] %in% c("generic","decrypt","verify","deserialise"))
 
   if(numeric_version(versions["minimum"]) > numeric_version(local_versions["actual"])){

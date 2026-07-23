@@ -112,7 +112,7 @@ Your username and password are used to encrypt the private keys that are stored 
 
 The goldfinger package uses the following concepts in combination:
 
-- serialisation:  this allows any arbitrary R object (or external file) to be converted to binary code, and then compressed for more efficient storage.  This is done via the qs package, and used by goldfinger before encryption.
+- serialisation:  this allows any arbitrary R object (or external file) to be converted to binary code before encryption.
 
 - symmetric encryption:  this allows large serialised objects to be encrypted quickly and efficiently, with the same key being used to encrypt and decrypt the data.  This is done via the sodium package, and used by goldfinger to encrypt data and files, with a unique (randomly generated) symmetric key for each dataset.
 

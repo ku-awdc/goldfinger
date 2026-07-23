@@ -8,20 +8,15 @@
 \alias{gy_sign}
 \title{Serialise and deserialise a list of objects/files}
 \usage{
-gy_serialise(object, files = character(0), method = "qs", ...)
+gy_serialise(object, files = character(0), method = "base", ...)
 
 gy_deserialise(object, files = TRUE, ...)
 
-gy_serialize(object, files = character(0), method = "qs", ...)
+gy_serialize(object, files = character(0), method = "base", ...)
 
 gy_deserialize(object, files = TRUE, ...)
 
 gy_sign(object, method = "hash")
-}
-\arguments{
-\item{object}{}
-
-\item{overwrite}{}
 }
 \description{
 Serialise and deserialise a list of objects/files

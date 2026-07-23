@@ -7,9 +7,6 @@
 \usage{
 gf_check(path = getOption("goldfinger_path"), silent = FALSE)
 }
-\arguments{
-\item{silent}{}
-}
 \description{
 Utilities for goldfinger encryption
 }

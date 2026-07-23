@@ -12,9 +12,6 @@ gy_encrypt(
   funs = list(type = "identity")
 )
 }
-\arguments{
-\item{overwrite}{}
-}
 \description{
 Encrypt and decrypt a pre-serialised object using goldeneye
 }

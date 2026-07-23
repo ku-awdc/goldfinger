@@ -9,11 +9,9 @@
 #' @param compress
 #' @param overwrite
 #'
-#' @importFrom qs qserialize qdeserialize
-#'
 #' @rdname gy_serialise
 #' @export
-gy_serialise <- function(object, files=character(0), method="qs", ...){
+gy_serialise <- function(object, files=character(0), method="base", ...){
 
   if(!is.character(method) || length(method)!=1 || is.na(method)) stop("The serialisation method argument must be a length 1 character", call.=FALSE)
 
@@ -32,8 +30,9 @@ gy_serialise <- function(object, files=character(0), method="qs", ...){
     # base::serialize, which does not allow compression:
     rv <- serialize(object=object, connection=NULL, ...)
   }else if(method == "qs"){
+    stop("Serialisation using qs is no longer supported", call.=FALSE)
     # qs::qserialize, with or without compression (default with):
-    rv <- qserialize(x=object, ...)
+    # rv <- qserialize(x=object, ...)
   }else if(method == "custom"){
     stop("The custom serialisation method is invalid for this function", call.=FALSE)
   }else{
@@ -75,8 +74,11 @@ gy_deserialise <- function(object, files=TRUE, ...){
     # base::unserialize
     rv <- unserialize(connection=object, ...)
   }else if(method == "qs"){
+    if(!requireNamespace("qs")){
+      stop("The qs package is required to deserialise this object:  this requires R version 4.5.x or earlier", call.=FALSE)
+    }
     # qs::qdeserialize
-    rv <- qdeserialize(x=object, ...)
+    rv <- qs::qdeserialize(x=object, ...)
   }else if(method == "custom"){
     stop("Unable to automatically deserialise custom-serialised objects", call.=FALSE)
   }else{

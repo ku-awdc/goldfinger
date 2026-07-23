@@ -23,9 +23,6 @@ gy_readRDS(
   run_custom = TRUE
 )
 }
-\arguments{
-\item{overwrite}{}
-}
 \description{
 Save and read encrypted RDS
 }

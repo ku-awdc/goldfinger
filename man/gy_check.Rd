@@ -9,9 +9,6 @@ gy_userfile(path = getOption("goldeneye_path"), silent = FALSE)
 
 gy_check(local = NULL, silent = FALSE)
 }
-\arguments{
-\item{silent}{}
-}
 \description{
 Utilities for goldfinger encryption
 }

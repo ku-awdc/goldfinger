@@ -3,7 +3,6 @@
   package_env$versions <- c(
     actual = utils::packageDescription(pkgname, fields='Version'),
     sodium = utils::packageDescription("sodium", fields='Version'),
-    qs = utils::packageDescription("qs", fields='Version'),
     rcpp = utils::packageDescription("Rcpp", fields='Version'),
     R = base::as.character(base::getRversion())
   )
