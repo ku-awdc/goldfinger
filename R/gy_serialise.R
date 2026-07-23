@@ -75,9 +75,37 @@ gy_deserialise <- function(object, files=TRUE, ...){
     rv <- unserialize(connection=object, ...)
   }else if(method == "qs"){
     if(!requireNamespace("qs")){
-      stop("The qs package is required to deserialise this object:  this requires R version 4.5.x or earlier", call.=FALSE)
+      if(getRversion() >= "4.6"){
+        stop('
+ The qs package is required to deserialise the saved object within this encrypted file.
+ Unfortunately, qs cannot be installed on R version 4.6.0 or later - this means that you
+ will have to downgrade to R version 4.5.x to read this file. See the vignette for more
+ details on how to install the qs package and convert your existing saved files to a
+ future-proof format:
+ vignette("goldfinger-qs")
+')
+      }else{
+        stop('
+ The qs package is required to deserialise the saved object within this encrypted file.
+ See the vignette for more details on how to install the qs package and convert your
+ existing saved files to a future-proof format:
+ vignette("goldfinger-qs")
+')
+      }
     }
-    # qs::qdeserialize
+
+#       if(Sys.Date() >= "2027-04-01"){
+#         stop('
+#  The qs package is required to deserialise the saved object within this encrypted file.
+#  You can install this from
+#  Rcpp, RApiSerialize, RcppParallel, stringfish, BH
+# ')
+#       }
+#         stop('The qs package is required to deserialise this object, but to install qs you will need to:  try running:\ninstall.packages("qs", this requires R version 4.5.x or earlier', call.=FALSE)
+#       }
+#       stop('The qs package is required to deserialise this object:  try running:\ninstall.packages("qs", this requires R version 4.5.x or earlier', call.=FALSE)
+#     }
+
     rv <- qs::qdeserialize(x=object, ...)
   }else if(method == "custom"){
     stop("Unable to automatically deserialise custom-serialised objects", call.=FALSE)
