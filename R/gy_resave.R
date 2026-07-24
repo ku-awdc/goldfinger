@@ -11,6 +11,6 @@ gy_resave <- function(input_file=stop("input_file must be specified (.rdg file e
 
   fcon <- readRDS(file)
 
-  stop("TODO")
+  stop("Function currently being implemented: please check back soon")
 
 }

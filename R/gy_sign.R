@@ -9,12 +9,12 @@
 
 #' @rdname gy_serialise
 #' @export
-gy_sign <- function(object, method="hash"){
+gy_sign <- function(object, method="hash-base"){
 
   ## TODO: method can be hash, base, qs, none (where none means it is already raw)
 
   ## Serialise/hash the object:
-  sopts <- c("hash", serialization_options[serialization_options!="custom"], "none")
+  sopts <- c("hash", "hash-base", serialization_options[serialization_options!="custom"], "none")
   mtch <- pmatch(method, sopts)
   if(is.na(mtch)) stop(str_c("Unrecognised serialisation method '", method, "' - options are: ", str_c(sopts, collapse=", ")))
   method <- sopts[mtch]
@@ -22,7 +22,10 @@ gy_sign <- function(object, method="hash"){
     if(method=="base") warning("Serialisation using base::serialize is not recommended for signing", call.=FALSE)
     object <- gy_serialise(object, method=method)
   }else if(method=="hash"){
-    object <- hash(qserialize(object, preset="uncompressed"))
+    stop("Serialisation with method='hash' is no longer supported: use method='hash-base' instead", call.=FALSE)
+    # object <- hash(qserialize(object, preset="uncompressed"))
+  }else if(method=="hash-base"){
+    object <- hash(serialize(object=object, connection=NULL))
   }else if(method=="none"){
     if(!is.raw(object)) stop("The object must be type raw for method=none", call.=FALSE)
   }else{
@@ -64,7 +67,26 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
   if(method %in% serialization_options){
     object <- gy_serialise(object, method=method)
   }else if(method=="hash"){
+    if(!requireNamespace("qs")){
+      if(getRversion() >= "4.6"){
+        stop('
+ The qs package is required to verify the saved object within this encrypted file.
+ Unfortunately, qs cannot be installed on R version 4.6.0 or later - this means that you
+ will have to downgrade to R version 4.5.x to read this file. See the vignette for more
+ details on how to install the qs package:
+ vignette("goldfinger-qs")
+')
+      }else{
+        stop('
+ The qs package is required to verify the saved object within this encrypted file.
+ See the vignette for more details on how to install the qs package:
+ vignette("goldfinger-qs")
+')
+      }
+    }
     object <- hash(qserialize(object, preset="uncompressed"))
+  }else if(method=="hash-base"){
+    object <- hash(serialize(object=object, connection=NULL))
   }else if(method=="none"){
     if(!is.raw(object)) stop("The object must be type raw for method=none", call.=FALSE)
   }else{

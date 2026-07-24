@@ -93,19 +93,6 @@ gy_deserialise <- function(object, files=TRUE, ...){
 ')
       }
     }
-
-#       if(Sys.Date() >= "2027-04-01"){
-#         stop('
-#  The qs package is required to deserialise the saved object within this encrypted file.
-#  You can install this from
-#  Rcpp, RApiSerialize, RcppParallel, stringfish, BH
-# ')
-#       }
-#         stop('The qs package is required to deserialise this object, but to install qs you will need to:  try running:\ninstall.packages("qs", this requires R version 4.5.x or earlier', call.=FALSE)
-#       }
-#       stop('The qs package is required to deserialise this object:  try running:\ninstall.packages("qs", this requires R version 4.5.x or earlier', call.=FALSE)
-#     }
-
     rv <- qs::qdeserialize(x=object, ...)
   }else if(method == "custom"){
     stop("Unable to automatically deserialise custom-serialised objects", call.=FALSE)

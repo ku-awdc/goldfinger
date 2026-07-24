@@ -12,7 +12,7 @@
 .onAttach <- function(libname, pkgname){
 
 	# This will be run after load if the package is attached:
-	packageStartupMessage(paste('Attaching goldfinger version ', package_env$versions["actual"], sep=''))
+	packageStartupMessage(paste('Attaching goldfinger version ', package_env$versions["actual"], '\n** Note: read vignette("goldfinger-qs") for important information about existing saved data files **', sep=''))
 
 }
 

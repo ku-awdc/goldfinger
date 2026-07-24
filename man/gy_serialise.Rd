@@ -16,7 +16,7 @@ gy_serialize(object, files = character(0), method = "base", ...)
 
 gy_deserialize(object, files = TRUE, ...)
 
-gy_sign(object, method = "hash")
+gy_sign(object, method = "hash-base")
 }
 \description{
 Serialise and deserialise a list of objects/files
