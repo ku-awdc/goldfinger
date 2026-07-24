@@ -178,6 +178,16 @@ gy_decrypt <- function(object, run_custom = TRUE){
     type <- funs[["type"]]
   }
 
+  ## Hack to allow gy_resave to extract the key directly:
+  retkey <- FALSE
+  if(is.list(run_custom)){
+    if(length(run_custom)!=1L || names(run_custom)!="run_custom" || !is.logical(run_custom[[1]])){
+      stop("Invalid run_custom argument")
+    }
+    retkey <- TRUE
+    run_custom <- run_custom[[1]]
+  }
+
   if(type=="identity"){
     # If the key is just a key:
     sym_key <- funs
@@ -192,6 +202,9 @@ gy_decrypt <- function(object, run_custom = TRUE){
     sym_key <- funs[["decr_fun"]](funs[[".x"]])
   }else{
     stop("The decryption key/function is invalid", call.=FALSE)
+  }
+  if(retkey){
+    return(sym_key)
   }
 
   # Decrypt:

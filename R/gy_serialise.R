@@ -93,6 +93,7 @@ gy_deserialise <- function(object, files=TRUE, ...){
 ')
       }
     }
+    if(package_env$qs_warning) warning('Using qs to deserialise will break after R 4.5.x - see:  vignette("goldfinger-qs")')
     rv <- qs::qdeserialize(x=object, ...)
   }else if(method == "custom"){
     stop("Unable to automatically deserialise custom-serialised objects", call.=FALSE)

@@ -24,42 +24,37 @@ If you have already installed R version 4.6.0 or later you will first need to do
 
 You will also need C++ compilers corresponding to the version of R you have installed; for macOS this is any version of Apple's developer tools, and for Windows with R 4.5.x this is Rtools45.  If you are trying to follow these instructions after March 2027 then you may also need other system-level dependencies to install the recursive package dependency tree from source (but see below regarding containers).
 
-## Installing qs and goldfinger
+## Installing stringfish, qs and goldfinger
 
-The first step is to set your default repository to include our drat repo:
-
-```{r}
-options(
-  repos = structure(c(CRAN="https://cran.rstudio.com/",
-          "ku-awdc"="https://ku-awdc.github.io/drat/"))
-)
-```
-
-You should then be able to install the goldfinger package with all dependencies (including the suggested package qs) using a single line:
-
-```{r eval=FALSE}
-install.packages("goldfinger", dependencies=TRUE)
-```
-
-Note that the qs and goldfinger packages are installed from source via the drat repo, but (assuming you are doing this before April 2027) all other packages will be installed from binary versions via CRAN.
-
-If the above one-liner results in an error then you can try to do it one step at a time.  First install the dependencies of qs from CRAN:
+In order to install qs we must also install an older version of stringfish (both from source). First ensure that the dependencies are installed:
 
 ```{r eval=FALSE}
 install.packages(c("Rcpp", "RApiSerialize", "RcppParallel", "stringfish", "BH"))
 ```
 
-Then the qs package from source:
+Then install stringfish version 0.16.0 via the CRAN Archive:
 
 ```{r eval=FALSE}
-install.packages("qs", type="source")
+install.packages("https://cran.r-project.org/src/contrib/Archive/stringfish/stringfish_0.16.0.tar.gz", repos = NULL)
 ```
 
-And then the goldfinger package (and additional dependencies):
+And finally the final version of qs from before it was removed from CRAN:
 
 ```{r eval=FALSE}
+install.packages("https://cran.r-project.org/src/contrib/Archive/qs/qs_0.27.3.tar.gz", repos = NULL)
+```
+
+You can then install the goldfinger package from our drat repo:
+
+```{r eval=FALSE}
+options(
+  repos = structure(c(CRAN="https://cran.rstudio.com/",
+          "ku-awdc"="https://ku-awdc.github.io/drat/"))
+)
 install.packages("goldfinger")
 ```
+
+Note that the stringfish, qs and goldfinger packages are installed from source, but (assuming you are doing this before April 2027) all other packages will be installed from binary versions via CRAN. This procedure was verified to be working on macOS (arm64) with R version 4.5.1 in July 2026 - other versions of R (and/or trying to do this after April 2027) may require additional steps.
 
 
 ## Upgrading old saved data files
@@ -77,4 +72,4 @@ This does not load the data into R but re-saves the data file without qs seriali
 
 The deprecation and removal of qs from CRAN was an unexpected and highly unfortunate event given that the goldfinger used this package so extensively, but we have now fallen back to base versions of the functions that are maintained by R core and are therefore much more likely to work for the foreseeable future. We strongly recommend using gy_resave to upgrade all data files that you have stored so they can be safely used with future versions of R. This procedure is currently not too difficult as long as R version 4.5.x is maintained as "old-release", but will become much more difficult from April 2027 when CRAN will no longer host binary versions of the required packages for this version of R.
 
-If you wish to be extra cautious then it would be worthwhile creating and keeping a container with R version 4.5.3 plus the packages described above installed, so that you can use this to convert any previously forgotten data files you may find in the future.  For macOS I can recommend [VirtualBuddy](https://github.com/insidegui/VirtualBuddy) for this purpose.
+If you wish to be extra cautious then it would be worthwhile creating and keeping a container with R version 4.5.x plus the packages described above installed, so that you can use this to convert any previously forgotten data files you may find in the future.  For macOS I can recommend [VirtualBuddy](https://github.com/insidegui/VirtualBuddy) for this purpose.

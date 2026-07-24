@@ -20,4 +20,5 @@ package_env <- new.env()
 package_env$versions <- NULL
 package_env$currentlocal <- NULL
 package_env$currentgroup <- NA_character_
+package_env$qs_warning <- TRUE
 

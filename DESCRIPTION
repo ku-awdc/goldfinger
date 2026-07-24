@@ -1,7 +1,7 @@
 Package: goldfinger
 Title: Support Package for GOLDFINGER
 Date: 2026-07-24
-Version: 0.5.0-2
+Version: 0.5.0-3
 Authors@R: 
     c(
     person(given = "Matt",
@@ -20,7 +20,6 @@ Authors@R:
 Description: Support package for GOLDFINGER
 License: GPL (>= 3)
 Encoding: UTF-8
-LazyData: true
 Roxygen: list(markdown = TRUE)
 Imports:
     rstudioapi,

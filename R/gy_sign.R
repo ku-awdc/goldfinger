@@ -60,9 +60,9 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
   check_version(versions)
 
   ## Serialise/hash the object:
-  sopts <- c("hash", serialization_options[serialization_options!="custom"], "none")
+  sopts <- c("hash", "hash-base", serialization_options[serialization_options!="custom"], "none")
   mtch <- pmatch(attr(signature, "ser_method", exact=TRUE), sopts)
-  if(length(mtch)!=1 || is.na(mtch)) stop(str_c("Unrecognised serialisation method attribute '", method, "' - options are: ", str_c(sopts, collapse=", ")))
+  if(length(mtch)!=1 || is.na(mtch)) stop(str_c("Unrecognised serialisation method attribute - options are: ", str_c(sopts, collapse=", ")))
   method <- sopts[mtch]
   if(method %in% serialization_options){
     object <- gy_serialise(object, method=method)
@@ -84,7 +84,7 @@ gy_verify <- function(object, signature, public_ed = NULL, silent=FALSE){
 ')
       }
     }
-    object <- hash(qserialize(object, preset="uncompressed"))
+    object <- hash(qs::qserialize(object, preset="uncompressed"))
   }else if(method=="hash-base"){
     object <- hash(serialize(object=object, connection=NULL))
   }else if(method=="none"){
