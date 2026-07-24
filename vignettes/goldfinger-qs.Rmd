@@ -1,0 +1,80 @@
+---
+title: "goldfinger and the qs package"
+author: "Matt Denwood"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{goldfinger-qs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Previous versions of the goldfinger package used (by default) the qs package to serialise/deserialise (and compress/uncompress) R objects as part of the save/load process in order to reduce file sizes and improve the speed of saving and loading. Unfortunately, the qs package is no longer being developed and does not install under R version 4.6.0 and later due to the use of some of R's C API that is no longer available to package developers.  The successor package is qs2 but this is not backwards-compatible with qs.  Unfortunately, this means that data saved using the standard save settings of version 0.4.3 (and earlier) of the goldfinger package cannot be loaded into R version 4.6.0 and later.  This vignette contains instructions of how to upgrade any older saved files that you may need to be able to use with newer versions of R.  Note that any encrypted data files saved using goldfinger version 0.5.0 and above can be loaded into newer versions of R without issues, as qs is no longer used for saving.
+
+## Down-grading R and installing compilers
+
+If you have already installed R version 4.6.0 or later you will first need to downgrade:  we recommend using R version 4.5.x, for which binary versions of R packages will be available from CRAN until R version 4.7.0 is released in April 2027.  You may already have this version installed, or otherwise you can check the archived R installers for e.g. [macOS arm](https://cran.r-project.org/bin/macosx/big-sur-arm64/base/) or [windows](https://cran.r-project.org/bin/windows/base/old/).
+
+You will also need C++ compilers corresponding to the version of R you have installed; for macOS this is any version of Apple's developer tools, and for Windows with R 4.5.x this is Rtools45.  If you are trying to follow these instructions after March 2027 then you may also need other system-level dependencies to install the recursive package dependency tree from source (but see below regarding containers).
+
+## Installing qs and goldfinger
+
+The first step is to set your default repository to include our drat repo:
+
+```{r}
+options(
+  repos = structure(c(CRAN="https://cran.rstudio.com/",
+          "ku-awdc"="https://ku-awdc.github.io/drat/"))
+)
+```
+
+You should then be able to install the goldfinger package with all dependencies (including the suggested package qs) using a single line:
+
+```{r eval=FALSE}
+install.packages("goldfinger", dependencies=TRUE)
+```
+
+Note that the qs and goldfinger packages are installed from source via the drat repo, but (assuming you are doing this before April 2027) all other packages will be installed from binary versions via CRAN.
+
+If the above one-liner results in an error then you can try to do it one step at a time.  First install the dependencies of qs from CRAN:
+
+```{r eval=FALSE}
+install.packages(c("Rcpp", "RApiSerialize", "RcppParallel", "stringfish", "BH"))
+```
+
+Then the qs package from source:
+
+```{r eval=FALSE}
+install.packages("qs", type="source")
+```
+
+And then the goldfinger package (and additional dependencies):
+
+```{r eval=FALSE}
+install.packages("goldfinger")
+```
+
+
+## Upgrading old saved data files
+
+In order to work with your older saved data files in R version 4.6.x you can upgrade the archive files by loading/decrypting/deserialising and then re-serialising/encrypting/saving the data. A convenience function gy_resave is provided for this purpose:
+
+```{r eval=FALSE}
+gy_resave("data_file.rdg")
+```
+
+This does not load the data into R but re-saves the data file without qs serialisation (by default the same file name is used i.e. the old file is over-written).  If the data file provided does not use qs serialisation to start with, then the function produces a note but does not re-save any data.
+
+
+## Future-proofing your data
+
+The deprecation and removal of qs from CRAN was an unexpected and highly unfortunate event given that the goldfinger used this package so extensively, but we have now fallen back to base versions of the functions that are maintained by R core and are therefore much more likely to work for the foreseeable future. We strongly recommend using gy_resave to upgrade all data files that you have stored so they can be safely used with future versions of R. This procedure is currently not too difficult as long as R version 4.5.x is maintained as "old-release", but will become much more difficult from April 2027 when CRAN will no longer host binary versions of the required packages for this version of R.
+
+If you wish to be extra cautious then it would be worthwhile creating and keeping a container with R version 4.5.3 plus the packages described above installed, so that you can use this to convert any previously forgotten data files you may find in the future.  For macOS I can recommend [VirtualBuddy](https://github.com/insidegui/VirtualBuddy) for this purpose.
