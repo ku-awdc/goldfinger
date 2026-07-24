@@ -45,8 +45,8 @@ refresh_users <- function(weblink, setup=FALSE, silent=FALSE, verify=TRUE){
     admin_ed <- get_localuser()$groups[[get_localuser()$group]]$admin_ed
   }
 
-  ## Temporarily disable verification - TODO: re-enable and update users file on costmodds AFTER goldfinger update on drat
-  if(verify && FALSE) gy_verify(info$users, info$verification, public_ed=admin_ed)
+  ## TODO: update users file on costmodds AFTER goldfinger update on drat verified to be working
+  if(verify) gy_verify(info$users, info$verification, public_ed=admin_ed)
 
   ## Decrypt and extract user information:
   user_info <- unserialize(data_decrypt(info[["users"]][["user_info"]], hash(charToRaw(weblink[2]))))
